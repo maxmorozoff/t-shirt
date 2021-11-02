@@ -1,12 +1,186 @@
-const APP = {svg:{}};
+const registerWorker = ({url, onmessage}) => {
+    if (window.Worker) {
+        const myWorker = new Worker(url || './worker.js');
+        myWorker.onmessage = onmessage || function(e) {
+            console.log('Message received from worker', e.data);
+        }
+        return myWorker
+    } 
+    console.error('Your browser doesn\'t support web workers.');
+}
+
+const APP = {svg:{}},
+createPath = str => {
+    // console.log(str)
+    let svg = document.createElementNS("http://www.w3.org/2000/svg", "path")
+    APP.svg.element.appendChild(svg)
+    svg.outerHTML = str
+},
+svgWorker = registerWorker({onmessage:e=>createPath(e.data)});
+
+// http://localhost:5500/?sx=14.05&sy=15.55&wave0=9.8&wave1=-10&issin=true&worker=true
+const searchParams = new URLSearchParams(location.search);
+    let svgUrlParams = {
+        step: {
+            x: searchParams.has('sx') ? +searchParams.get('sx') : 3,
+            y: searchParams.has('sy') ? +searchParams.get('sy') : 5
+        }, 
+        noise: [
+            searchParams.has('wave0') ? +searchParams.get('wave0') : 1,
+            searchParams.has('wave1') ? +searchParams.get('wave1') : 3,
+        ], 
+        logo: searchParams.has('logo') ? ('true'===searchParams.get('logo')) : true, 
+        isSin: searchParams.has('issin') ? ('true'===searchParams.get('issin')) : true, 
+        useWorker: searchParams.has('worker') ? ('true'===searchParams.get('worker')) : false,
+    }
+    console.log(!!searchParams.get('logo'),searchParams.get('logo'))
 
 
-window.onload = function()
+const updateSearchParams = obj => {
+    const params = new URLSearchParams(location.search);
+    params.set('sx', obj?.step.x);
+    params.set('sy', obj?.step.y);
+    params.set('wave0', obj?.noise[0]);
+    params.set('wave1', obj?.noise[1]);
+    params.set('logo', obj?.logo);
+    params.set('issin', obj?.isSin);
+    params.set('worker', obj?.useWorker);
+
+    window.history.replaceState({}, '', `${location.pathname}?${params}`);
+}
+    
+
+const input = e => {
+    console.log(e)
+    switch (e?.id) {
+        case 'id0':
+            document.querySelector('svg #tag-logo').classList.toggle('hide')
+            break;
+        case 'id1':
+        case 'id2':
+        case 'id3':
+        case 'id4':
+        case 'id5':
+            let step = {
+                x:+document.querySelector('#id1').value,
+                y:+document.querySelector('#id2').value,
+            },
+            noise = [
+                +document.querySelector('#id3').value,
+                +document.querySelector('#id4').value,
+            ],
+            isSin = document.querySelector('#id5').checked,
+            logo = document.querySelector('#id0').checked;
+            let all = document.querySelectorAll('input')
+
+            all.forEach(inp => inp.disabled = true)
+            scanAll(step, noise, isSin)
+            all.forEach(inp => inp.disabled = false)
+            updateSearchParams({step,noise,isSin,useWorker:true,logo})
+            break;
+        case 'zoom': 
+            document.body.style = `--zoom:${e.value};`
+    
+        default:
+            break;
+    }
+}
+
+
+
+
+
+
+// document.addEventListener('pointermove',e=>{
+//     // console.log(isCircleOrLogo(e.offsetX,e.offsetY),e.offsetX,e.offsetY,e.screenX,e.screenY)
+//     console.log(isCircleOrLogo(e.clientX,e.clientY),e.clientX,e.clientY,e.screenX,e.screenY)
+//     // console.log(e)
+//     // console.dir(document.elementFromPoint(e.offsetX,e.offsetY))
+
+// })
+
+
+function scanAll(step={x:3,y:5}, noise = [1,3], isSin = true, svgSize = APP.svg.element.viewBox.baseVal, useWorker=true) {
+    let svg = document.querySelectorAll('svg > path')
+    svg.forEach(p=>p?.remove())
+
+    const lines = []
+    console.log(arguments)
+    
+    for (let y = 0; y < svgSize.height; y+=step.y) {
+        let line = scanLine(y, svgSize.width, step.x, noise, isSin)
+        if (!line.length) continue
+        lines.push(line)
+    }   
+    
+    // eightPoint();
+     
+    svg = document.createElementNS("http://www.w3.org/2000/svg", "path")
+    // console.log(svg)
+    APP.svg.element.appendChild(svg)
+
+    if (useWorker) return svgWorker.postMessage(lines);
+    
+    createPath( lines.reduce((parent,line)=>parent+svgPath(line, bezierCommand),'') )
+    
+    // svg.outerHTML = svgPath(genLine, bezierCommand)
+    // svg.outerHTML = lines.reduce((parent,line)=>parent+svgPath(line, bezierCommand))
+}
+
+
+function scanLine(y, len = 100, step = 10, noise = [1,3], isSin = false, deg=0) {
+    const points = []
+    const counts = len/step
+    for (let i=0; i<=counts; i++) {
+        let x = i*step
+        let el = isCircleOrLogo(...svg2html(x,y, APP.svg.box))
+        if (!el) continue
+        let isLogo = el == 'vector' ? 1 : 0;
+        // if (!isLogo) continue
+        // points.push([x,y + isLogo*2])
+        points.push([x,y + noise[isLogo]*(isSin?(-1+(i%2)*2):1)])
+    }
+    return points
+}
+
+APP.svg.vector = document.querySelector('svg #vector')
+APP.svg.circle = document.querySelector('svg #circle')
+
+const svg2html = (x, y, offset={x:0,y:0}) => [x,y]
+// [Math.round(x+offset.x), Math.round(y+offset.y)]
+const checkSvgEl = (el, ids) => ids.find(id=>el?.id == id) 
+// const isCircleOrLogo = (x,y) => checkSvgEl(document.elementFromPoint(x,y),['circle','vector'])
+let createPoint = ((x,y,svg=APP.svg.element) => {
+    let point = svg.createSVGPoint()
+    return function (x, y) {
+        point.x = x
+        point.y = y
+        // let point = new DOMPoint(x, y);
+        // console.log(point)
+        return point    
+    }
+})
+const isCircleOrLogo = (x,y) => (p => 
+    APP.svg.vector.isPointInFill(p) 
+        ? 'vector'
+        : APP.svg.circle.isPointInFill(p) 
+            ? 'circle'
+            : undefined)(createPoint(x, y))
+
+
+
+
+
+
+
+
+// window.onload = 
+svgOnload = function()
 {
     APP.svg.element = document.getElementById("svg") || document.body.appendChild(document.createElement('svg'));
-
+    createPoint = createPoint()//init
     APP.svg.box = APP.svg.element.getBoundingClientRect()
-    console.log(APP.svg.box, document.body.parentElement.scrollLeft,document.body.parentElement.scrollTop)
+    // console.log(APP.svg.box, document.body.parentElement.scrollLeft,document.body.parentElement.scrollTop)
     // gridLines();
 
     // threePoint();
@@ -19,11 +193,11 @@ window.onload = function()
     // console.log(document.elementFromPoint(300, 100))
     console.log(isCircleOrLogo(300, 100))
 
-
+    // svgWorker.postMessage(APP.svg.element)
     
-    let genLine = scanLine(450, APP.svg.box.width, 3)
-    console.log(genLine)
-
+    // let genLine = scanLine(450, APP.svg.box.width, 3)
+    // console.log(genLine)
+/* 
     const lines = []
 
     for (let y = 0; y < APP.svg.box.height; y+=5) {
@@ -32,49 +206,44 @@ window.onload = function()
         lines.push(line)
     }
 
-    console.log(lines)
+    // console.log(lines)
     
     
     eightPoint();
     const svg = document.querySelector('svg > path') 
 
-    console.log(svg)
+    // console.log(svg)
 
     
     
+    svg.outerHTML = lines.reduce((parent,line)=>parent+svgPath(line, bezierCommand)) */
+
     // svg.outerHTML = svgPath(genLine, bezierCommand)
-    svg.outerHTML = lines.reduce((parent,line)=>parent+svgPath(line, bezierCommand))
     // drawPoints(genLine, "#0000FF");
-}
+    // scanAll({x:3,y:5}, [1,3], true, APP.svg.element.viewBox.baseVal, false)
+    scanAll(
+        svgUrlParams.step, 
+        svgUrlParams.noise, 
+        svgUrlParams.isSin, APP.svg.element.viewBox.baseVal, 
+        svgUrlParams.useWorker
+    )
+    console.log({svgUrlParams})
+    console.log(svgUrlParams.logo)
+    if (!svgUrlParams.logo) document.querySelector('svg #tag-logo').classList.toggle('hide')
 
-document.addEventListener('pointermove',e=>{
-    // console.log(isCircleOrLogo(e.offsetX,e.offsetY),e.offsetX,e.offsetY,e.screenX,e.screenY)
-    console.log(isCircleOrLogo(e.clientX,e.clientY),e.clientX,e.clientY,e.screenX,e.screenY)
-    // console.log(e)
-    // console.dir(document.elementFromPoint(e.offsetX,e.offsetY))
 
-})
-
-
-function scanLine(y, len = 100, step = 10, noise = [1,3], deg=0) {
-    const points = []
-    const counts = len/step
-    for (let i=0; i<=counts; i++) {
-        let x = i*step
-        let el = isCircleOrLogo(...svg2html(x,y, APP.svg.box))
-        if (!el) continue
-        let isLogo = el == 'vector' ? 1 : 0;
-        // if (!isLogo) continue
-        // points.push([x,y + isLogo*2])
-        points.push([x,y + noise[isLogo]*(-1+(i%2)*2)])
-    }
-    return points
+    // svgUrlParams
 }
 
 
-const svg2html = (x, y, offset={x:0,y:0}) => [Math.round(x+offset.x), Math.round(y+offset.y)]
-const checkSvgEl = (el, ids) => ids.find(id=>el?.id == id) 
-const isCircleOrLogo = (x,y) => checkSvgEl(document.elementFromPoint(x,y),['circle','vector'])
+
+
+
+
+
+
+
+
 
 
 function gridLines()
