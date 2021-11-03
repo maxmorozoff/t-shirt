@@ -12,11 +12,135 @@ const registerWorker = ({url, onmessage}) => {
 const APP = {svg:{}},
 createPath = str => {
     // console.log(str)
+    document.querySelectorAll('svg > path').forEach(p=>p?.remove())
     let svg = document.createElementNS("http://www.w3.org/2000/svg", "path")
     APP.svg.element.appendChild(svg)
     svg.outerHTML = str
 },
 svgWorker = registerWorker({onmessage:e=>createPath(e.data)});
+
+const defaults = {    
+    step: {
+        x: 3,
+        y: 5
+    }, 
+    deg: 0,
+    noise: [
+        1,
+        3,
+    ], 
+    faseK: 0,
+    logo: true, 
+    isSin: true, 
+    // useWorker: false,
+}
+Object.freeze(defaults);
+
+const settings = {...defaults,logo:false}
+
+const createInput = (id, val, fn=_=>{} ) => {
+    let div = document.createElement('div')    
+    switch (val.constructor) {
+        case Number:  
+            div.oninput = e=>{
+                fn(+e.target?.value)   
+                e.target.previousElementSibling.lastChild.value = e.target?.value
+            }       
+            div.innerHTML = `
+                <label for="${id}">${id.split('-').join(' ')}: <output>${val}</output></label>
+                <input type="range" min="-10" max="10" value="${val}" step=".1" id="${id}">`
+            break;
+        case Boolean:       
+            div.oninput = e=>fn(e.target?.checked)    
+            div.innerHTML = `
+                <label for="${id}">${id.split('-').join(' ')}:</label>
+                <input type="checkbox" id="${id}" ${val ? 'checked' : ''}>`
+            break;
+    
+        default:
+            console.warn("Can't create element of type:",val.constructor, {id,val,fn} )
+            break;
+    }
+    return div
+}
+
+const readFromUrl = (obj=defaults) => {    
+    // const p = new URLSearchParams('?p='+JSON.stringify(settings));
+    const p = new URLSearchParams(location.search);
+
+    const s = {...obj}
+    
+    if (!p.has('p')) return s
+    try {
+        const ps = JSON.parse(p.get('p'))
+
+        for (const key in s) {
+            if (ps[key]) s[key] = ps[key]
+        }
+    } catch (e) {
+        console.error(e)
+    }
+    return s
+}
+const writeToUrl = (obj=settings, def=defaults, skey='p') => {    
+    const s = {}
+    for (const key in def) {
+        if (obj[key] != def[key]) s[key] = obj[key]
+    }
+    const str = JSON.stringify(s)
+    const p = new URLSearchParams(`?${skey}=`+str);
+
+    window.history.replaceState({}, '', `${location.pathname}?${p}`);
+
+    return str
+}
+
+// console.log('write',writeToUrl())
+// console.log('read',readFromUrl())
+
+const writeToInputs = (arg=settings) => {
+    // const inputs = document.querySelectorAll('.controll input')
+    const inputs = document.querySelector('.controll')
+    const getInput = id => inputs.querySelector(`#${id}`)
+    const allIds = []
+    const iter = (obj, pkey='') => {
+        const mkId = key => pkey ? pkey +'-'+ key : key;
+        for (const key in obj) {
+            const val = obj[key]
+            if (val instanceof Array || val instanceof Object) {
+                iter(val,key)
+                continue
+            }
+            console.log(mkId(key),getInput(mkId(key)),{obj,pkey,val})
+            const id = mkId(key)
+            const inp = getInput(id) 
+            allIds.push(id)
+            if (!inp) {
+                console.warn('no input with id:', id, 'creating input with js...')
+                let div = createInput(id, val, e=>{obj[key]=e} )
+                inputs.appendChild(div)
+                continue
+            }
+            if (val instanceof Boolean) {
+                inp.checked = val
+                continue
+            }
+            if (!('value' in inp)) {
+                console.warn('no "value" in input:', inp)
+                continue
+            }
+            inp.value = val
+
+        }
+    }
+    iter(arg)
+    console.log(allIds)
+}
+// writeToInputs(settings)
+
+
+// console.log(createInput('djdjdj',true))
+// console.log(createInput('djdjdj',false))
 
 // http://localhost:5500/?sx=14.05&sy=15.55&wave0=9.8&wave1=-10&issin=true&worker=true
 const searchParams = new URLSearchParams(location.search);
@@ -48,29 +172,43 @@ const updateSearchParams = obj => {
 
     window.history.replaceState({}, '', `${location.pathname}?${params}`);
 }
-    
+   
+
+// 0: "step-x"
+// 1: "step-y"
+// 2: "deg"
+// 3: "noise-0"
+// 4: "noise-1"
+// 5: "logo"
+// 6: "isSin"
+// 7: "useWorker"
 
 const input = e => {
     console.log(e)
     switch (e?.id) {
-        case 'id0':
-            document.querySelector('svg #tag-logo').classList.toggle('hide')
+        case 'logo':
+            // document.querySelector('svg #tag-logo').classList.toggle('hide')
+            if (e.checked) document.querySelector('svg #tag-logo').style = ''
+            else document.querySelector('svg #tag-logo').style = 'display: none;'
             break;
-        case 'id1':
-        case 'id2':
-        case 'id3':
-        case 'id4':
-        case 'id5':
+        case 'step-x':
+        case 'step-y':
+        case 'noise-0':
+        case 'noise-1':
+        case 'isSin':
+            // e.nextElementSibling.value = e.value
+            e.previousElementSibling.lastChild.value = e.value
+
             let step = {
-                x:+document.querySelector('#id1').value,
-                y:+document.querySelector('#id2').value,
+                x:+document.querySelector('#step-x').value,
+                y:+document.querySelector('#step-y').value,
             },
             noise = [
-                +document.querySelector('#id3').value,
-                +document.querySelector('#id4').value,
+                +document.querySelector('#noise-0').value,
+                +document.querySelector('#noise-1').value,
             ],
-            isSin = document.querySelector('#id5').checked,
-            logo = document.querySelector('#id0').checked;
+            isSin = document.querySelector('#isSin').checked,
+            logo = document.querySelector('#logo').checked;
             let all = document.querySelectorAll('input')
 
             all.forEach(inp => inp.disabled = true)
@@ -79,6 +217,12 @@ const input = e => {
             updateSearchParams({step,noise,isSin,useWorker:true,logo})
             break;
         case 'zoom': 
+            // console.dir(e)
+            e.previousElementSibling.lastChild.value = e.value
+            console.log(e,e.previousElementSibling.lastChild)
+            // e.nextElementSibling.value = e.value
+            // e.pre
+
             document.body.style = `--zoom:${e.value};`
     
         default:
@@ -100,15 +244,15 @@ const input = e => {
 // })
 
 
-function scanAll(step={x:3,y:5}, noise = [1,3], isSin = true, svgSize = APP.svg.element.viewBox.baseVal, useWorker=true) {
+function scanAll(step={x:3,y:5}, noise = [1,3], isSin = true, svgSize = APP.svg.element.viewBox.baseVal, useWorker=true, faseStep=.1) {
     let svg = document.querySelectorAll('svg > path')
-    svg.forEach(p=>p?.remove())
+    // svg.forEach(p=>p?.remove())
 
     const lines = []
     console.log(arguments)
     
     for (let y = 0; y < svgSize.height; y+=step.y) {
-        let line = scanLine(y, svgSize.width, step.x, noise, isSin)
+        let line = scanLine(y, svgSize.width, step.x, noise, isSin,0,step.x/4,faseStep)
         if (!line.length) continue
         lines.push(line)
     }   
@@ -123,23 +267,55 @@ function scanAll(step={x:3,y:5}, noise = [1,3], isSin = true, svgSize = APP.svg.
     
     createPath( lines.reduce((parent,line)=>parent+svgPath(line, bezierCommand),'') )
     
+    // lines.forEach(points=>drawPoints(points, "#FF8000"));
+
     // svg.outerHTML = svgPath(genLine, bezierCommand)
     // svg.outerHTML = lines.reduce((parent,line)=>parent+svgPath(line, bezierCommand))
 }
 
 
-function scanLine(y, len = 100, step = 10, noise = [1,3], isSin = false, deg=0) {
+function scanLine(y, width = 100, step = 10, noise = [1,3], isSin = false, deg=0,dx=step/4,faseK=0) {
     const points = []
-    const counts = len/step
-    for (let i=0; i<=counts; i++) {
-        let x = i*step
-        let el = isCircleOrLogo(...svg2html(x,y, APP.svg.box))
+    const dnoise = Math.abs(Math.abs(noise[1]) - Math.abs(noise[0]) )
+    const nInc =  dnoise / (2*dx)
+    const PI = Math.PI
+    const sin = (x) => Math.sin(faseK*y+2*PI*x/step)
+    let isLogoOld = -1;
+    let x1 = -1;
+    let oldN = -1;
+    for (let x=0; x<=width; x++) {
+        let el = isCircleOrLogo(...svg2html(x+dx,y, APP.svg.box))
+        let isLogo = el == 'vector' ? 1 : 0;
+        if (isLogo != isLogoOld && isLogoOld >=0) {
+            x1 = x + 2*dx
+            oldN = noise[isLogo]
+        }
+        isLogoOld = isLogo
+        if (x < x1) {
+            let dir = isLogoOld*2 - 1
+            points.push([x,y + sin(x)*(oldN - nInc*(x1- x)*dir)])
+            continue
+        }
+
+        else x1 = -1
         if (!el) continue
+        // if (!isLogo) continue
+        // points.push([x,y + isLogo*2])
+        points.push([x,y + sin(x)*noise[isLogo]])
+    }
+    // drawPoints(points, "#FF8000");
+
+    /* // const counts = len/step
+    for (let i=0; i<=len; i++) {
+        let el = isCircleOrLogo(...svg2html(i,y, APP.svg.box))
+        if (!el) continue
+        if (i%step != 0) continue 
+        // let x = Math.round(i/step)
         let isLogo = el == 'vector' ? 1 : 0;
         // if (!isLogo) continue
         // points.push([x,y + isLogo*2])
         points.push([x,y + noise[isLogo]*(isSin?(-1+(i%2)*2):1)])
-    }
+    } */
     return points
 }
 
@@ -220,7 +396,7 @@ svgOnload = function()
 
     // svg.outerHTML = svgPath(genLine, bezierCommand)
     // drawPoints(genLine, "#0000FF");
-    // scanAll({x:3,y:5}, [1,3], true, APP.svg.element.viewBox.baseVal, false)
+    // scanAll({x:15,y:10}, [1,4], true, APP.svg.element.viewBox.baseVal, false)
     scanAll(
         svgUrlParams.step, 
         svgUrlParams.noise, 
@@ -290,7 +466,7 @@ function drawPoints(points, colour)
 
         circle.setAttributeNS(null, "cx", point[0]);
         circle.setAttributeNS(null, "cy", point[1]);
-        circle.setAttributeNS(null, "r", 2);
+        circle.setAttributeNS(null, "r", 1);
 
         circle.setAttributeNS(null, "fill", colour);
 
