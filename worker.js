@@ -89,7 +89,7 @@ const svgPath = (points, command) => {
         : `${acc} ${command(point, i, a)}`
         , '')
     // return d
-    return `<path d="${d}" fill="none" stroke="grey" />`
+    return `<path d="${d}" fill="none" stroke="currentColor" />`
 }
 
 // const svgPathHTMLstring = d => `<path d="${d}" fill="none" stroke="grey" />`

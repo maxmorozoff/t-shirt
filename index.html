@@ -32,6 +32,10 @@
             font-family: sans-serif;
             --zoom: 1;
         }
+        html {
+            color: azure;
+            background-color: var(--color-bg, #1D1E26);
+        }
         /* .controll  */
         details {
             position: fixed;
@@ -41,12 +45,16 @@
             font-size: 1rem;
         }
         .controll input {
-            height: 3em;
+            /* height: 3em; */
             /* font-size: inherit; */
         }
         .controll > div {
             display: flex;
             flex-direction: column;
+        }
+        .controll > div.row {
+            flex-direction: row;
+            justify-content: space-evenly;
         }
 
         .hide {
@@ -143,6 +151,16 @@
             <div>
                 <label for="zoom">Zoom: <span id="dpi-label"></span>  <output></output></label>
                 <input type="range" min="0.5" max="10" value="1" step=".5" id="zoom" oninput="input(this)">
+            </div>
+            <div class="row">
+                <div>
+                    <input type="color" id="color-bg" name="color-bg" value="#e66465" oninput="input(this)">
+                    <label for="color-bg">BG color</label>
+                </div>
+                <div>
+                    <input type="color" id="color-lines" name="color-lines" value="#f6b73c" oninput="input(this)">
+                    <label for="color-lines">Lines color</label>
+                </div>
             </div>
             <div>
                 <label for="logo">Show TAG background:</label>

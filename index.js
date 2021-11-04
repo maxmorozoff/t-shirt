@@ -39,6 +39,10 @@ const defaults = {
     faseK: 0,
     logo: true, 
     isSin: true, 
+    color: {
+        lines: "#808080",
+        bg: "#1D1E26"
+    }
     // dx:10,
     // useWorker: false,
 }
@@ -171,6 +175,7 @@ const readFromInputElement = (el, obj=settings) => {
     let val, id = el.id;
     if (el.type == 'checkbox') val = el.checked
     else if (el.type == 'range') val = +el.value
+    else if (el.type == 'color') val = el.value
     else return obj
 
     obj = writeWithId(id, obj, val)
@@ -227,13 +232,14 @@ const updateLogoBg = (s=settings) => {
     if (s.logo) document.querySelector('svg #tag-logo').style = ''
     else document.querySelector('svg #tag-logo').style = 'display: none;'
 }
-const applyStroke = (element,width=1,color='grey', units = 'mm') => {
+const applyStroke = (element,params={width:1,color:'grey'}, units = 'mm') => {
     if (!element) return
     console.dir(element)
     // element.style = `stroke: ${color}; stroke-width: ${width+units};`
 
-    element.setAttribute('stroke-width', width + units)
-    element.setAttribute('stroke', color)
+    params?.width && element.setAttribute('stroke-width', params.width + units)
+    params?.color && element.setAttribute('stroke', params.color)
+    params?.color && element.setAttribute('color', params.color)
 }
 
 const input = (e,isEvent=true) => {
@@ -282,7 +288,14 @@ const input = (e,isEvent=true) => {
             
             break;
         case 'stroke':
-            applyStroke(APP.svg.path, e.value)
+            applyStroke(APP.svg.path, {width: e.value})
+            break;
+        case 'color-lines':
+            applyStroke(APP.svg.path, {color: e.value})
+            break;
+        case 'color-bg':
+            document.querySelector('html').style = `--color-bg: ${e.value};`
+            break;
         default:
             if (!isEvent) break
             scanAll(readFromInputElements(document.querySelector('.controll'),settings))
