@@ -65,9 +65,9 @@ const iterSettings = (obj, func=(id,key,val,obj)=>{}, pkey='') => {
 }
 
 const writeWithId = (id, obj, val) => {
-    console.trace('writeWithId')
+    // console.trace('writeWithId')
     const path = id.split('-')
-    console.log('wrrr', {id,val,obj},path,obj.logo)
+    // console.log('wrrr', {id,val,obj},path,obj.logo)
     if (!path.length) return obj
 
     const look = (ref=obj, key=path.shift()) => {
@@ -79,15 +79,14 @@ const writeWithId = (id, obj, val) => {
         if (!isNaN(ref[key])) val = (isBool(ref[key]) )
             ? (val == 'true' || val == true)
             : +val
-        console.log({old:ref[key],val})
+        // console.log({old:ref[key],val})
         ref[key] = val
         return obj
     }
 
-    const res = look()
-    console.log('wrrr', {res,obj},path)
-    return res
-    // return look()
+    // const res = look()
+    // return res
+    return look()
 }
 
 const readWithId = (id, obj) => {
@@ -96,7 +95,6 @@ const readWithId = (id, obj) => {
 
     const look = (ref=obj, key=path.shift()) => {
         if (path.length) return look(ref[key]) 
-        // if (ref[key] instanceof Number) val = +val
         return ref[key]
     }
 
@@ -130,72 +128,28 @@ const createInput = (id, val, fn=_=>{} ) => {
 }
 
 const readFromUrl = (obj=defaults) => {    
-    // const p = new URLSearchParams('?p='+JSON.stringify(settings));
     const params = new URLSearchParams(location.search);
 
     for (let p of params) {
         console.log({p});
         writeWithId(p[0],settings,p[1])
     }
-    // console.log('https://tag.morozov.page/mklogo/'+window.location.search)
     document.querySelector('svg a').setAttribute('href','https://tag.morozov.page/mklogo/'+window.location.search)
 
     return settings
-    // console.log({p},p.toString())
-    // const s = JSON.parse(JSON.stringify(obj))
-    // // {...obj}
-    
-    // if (!p.has('p')) return s
-    // try {
-    //     const ps = JSON.parse(p.get('p'))
-    //     console.log(ps)
-
-    //     for (const key in s) {
-    //         if (ps[key]) s[key] = ps[key]
-    //     }
-    // } catch (e) {
-    //     console.error(e)
-    // }
-    // return s
 }
 const writeToUrl = (obj=settings, def=defaults, skey='p') => {    
     const s = {}
-    console.log(obj, settings, obj === settings)
-    // for (const key in def) {
-    //     console.log({key}, obj[key] != def[key] ,def[key],obj[key])
-    //     if (obj[key] != def[key]) s[key] = obj[key]
-    // }
-    // const iter = (o) => {
-    //     for (const key in o) {
-    //         console.log({key}, obj[key] != def[key] ,def[key],obj[key])
-
-    //         const val = o[key]
-    //         if (val instanceof Array || val instanceof Object) {
-    //             iter(val)
-    //             continue
-    //         }
-    //         if (val != def[key]) s[key] = val
-    //     }
-    // }
-    // iter(obj)
     iterSettings(obj,(id,key,val,obj)=>{
         const defVal = readWithId(id, def)
         if (defVal != undefined && val != defVal) s[id] = val
     })
-    // const str = JSON.stringify(s)
-    // const p = new URLSearchParams(`?${skey}=`+str);
     const p = new URLSearchParams(s);
-    console.log(p.toString())
-
-    // window.history.replaceState({}, '', `${location.pathname}?${p}`);
     window.history.pushState({}, '', `${location.pathname}?${p}`);
 
     document.querySelector('svg a').setAttribute('href','https://tag.morozov.page/mklogo/'+window.location.search)
-    // document.querySelector('svg a').href = 'https://tag.morozov.page/mklogo/'+window.location.search
-    // document.querySelector('svg a').href = window.location.href
 
     return s
-    return str
 }
 
 // console.log('write',writeToUrl())
@@ -257,50 +211,6 @@ const writeToInputs = (arg=settings,fn=_=>{}) => {
 // writeToInputs(settings)
 
 
-// console.log(createInput('djdjdj',true))
-// console.log(createInput('djdjdj',false))
-
-// http://localhost:5500/?sx=14.05&sy=15.55&wave0=9.8&wave1=-10&issin=true&worker=true
-// const searchParams = new URLSearchParams(location.search);
-//     let svgUrlParams = {
-//         step: {
-//             x: searchParams.has('sx') ? +searchParams.get('sx') : 3,
-//             y: searchParams.has('sy') ? +searchParams.get('sy') : 5
-//         }, 
-//         noise: [
-//             searchParams.has('wave0') ? +searchParams.get('wave0') : 1,
-//             searchParams.has('wave1') ? +searchParams.get('wave1') : 3,
-//         ], 
-//         logo: searchParams.has('logo') ? ('true'===searchParams.get('logo')) : true, 
-//         isSin: searchParams.has('issin') ? ('true'===searchParams.get('issin')) : true, 
-//         useWorker: searchParams.has('worker') ? ('true'===searchParams.get('worker')) : false,
-//     }
-//     console.log(!!searchParams.get('logo'),searchParams.get('logo'))
-
-
-// const updateSearchParams = obj => {
-//     const params = new URLSearchParams(location.search);
-//     params.set('sx', obj?.step.x);
-//     params.set('sy', obj?.step.y);
-//     params.set('wave0', obj?.noise[0]);
-//     params.set('wave1', obj?.noise[1]);
-//     params.set('logo', obj?.logo);
-//     params.set('issin', obj?.isSin);
-//     params.set('worker', obj?.useWorker);
-
-//     window.history.replaceState({}, '', `${location.pathname}?${params}`);
-// }
-   
-
-// 0: "step-x"
-// 1: "step-y"
-// 2: "deg"
-// 3: "noise-0"
-// 4: "noise-1"
-// 5: "logo"
-// 6: "isSin"
-// 7: "useWorker"
-
 const updateLogoBg = (s=settings) => {
     if (s.logo) document.querySelector('svg #tag-logo').style = ''
     else document.querySelector('svg #tag-logo').style = 'display: none;'
@@ -320,20 +230,7 @@ const input = e => {
         case 'noise-0':
         case 'noise-1':
         case 'isSin':
-            // e.nextElementSibling.value = e.value
             e.previousElementSibling.lastChild.value = e.value
-
-            // let step = {
-            //     x:+document.querySelector('#step-x').value,
-            //     y:+document.querySelector('#step-y').value,
-            // },
-            // noise = [
-            //     +document.querySelector('#noise-0').value,
-            //     +document.querySelector('#noise-1').value,
-            // ],
-            // isSin = document.querySelector('#isSin').checked,
-            // logo = document.querySelector('#logo').checked;
-            // let all = document.querySelectorAll('input')
 
             const obj = readFromInputElement(e)
             settings = obj
@@ -364,18 +261,6 @@ const input = e => {
     
 }
 
-
-
-
-
-
-// document.addEventListener('pointermove',e=>{
-//     // console.log(isCircleOrLogo(e.offsetX,e.offsetY),e.offsetX,e.offsetY,e.screenX,e.screenY)
-//     console.log(isCircleOrLogo(e.clientX,e.clientY),e.clientX,e.clientY,e.screenX,e.screenY)
-//     // console.log(e)
-//     // console.dir(document.elementFromPoint(e.offsetX,e.offsetY))
-
-// })
 
 
 function scanAll(S=settings, svgSize = APP.svg.element.viewBox.baseVal, useWorker=true) {
@@ -446,17 +331,6 @@ function scanLine(y, width = 100, S) {
     }
     // drawPoints(points, "#FF8000");
 
-    /* // const counts = len/step
-    for (let i=0; i<=len; i++) {
-        let el = isCircleOrLogo(...svg2html(i,y, APP.svg.box))
-        if (!el) continue
-        if (i%step != 0) continue 
-        // let x = Math.round(i/step)
-        let isLogo = el == 'vector' ? 1 : 0;
-        // if (!isLogo) continue
-        // points.push([x,y + isLogo*2])
-        points.push([x,y + noise[isLogo]*(isSin?(-1+(i%2)*2):1)])
-    } */
     return points
 }
 
@@ -497,62 +371,12 @@ svgOnload = function()
     APP.svg.element = document.getElementById("svg") || document.body.appendChild(document.createElement('svg'));
     createPoint = createPoint()//init
     APP.svg.box = APP.svg.element.getBoundingClientRect()
-    // console.log(APP.svg.box, document.body.parentElement.scrollLeft,document.body.parentElement.scrollTop)
-    // gridLines();
-
-    // threePoint();
-    // fourPoint();
-    // sixPoint();
-    // return
-    // eightPoint();
 
     writeToInputs(settings,input)
     updateLogoBg(settings)
-
-    console.dir(APP.svg.element.querySelector('#vector'))
-    // console.log(document.elementFromPoint(300, 100))
-    console.log(isCircleOrLogo(300, 100))
-
-    // svgWorker.postMessage(APP.svg.element)
     
-    // let genLine = scanLine(450, APP.svg.box.width, 3)
-    // console.log(genLine)
-/* 
-    const lines = []
-
-    for (let y = 0; y < APP.svg.box.height; y+=5) {
-        let line = scanLine(y, APP.svg.box.width, 3)
-        if (!line.length) continue
-        lines.push(line)
-    }
-
-    // console.log(lines)
+    scanAll()
     
-    
-    eightPoint();
-    const svg = document.querySelector('svg > path') 
-
-    // console.log(svg)
-
-    
-    
-    svg.outerHTML = lines.reduce((parent,line)=>parent+svgPath(line, bezierCommand)) */
-
-    // svg.outerHTML = svgPath(genLine, bezierCommand)
-    // drawPoints(genLine, "#0000FF");
-    // scanAll({x:15,y:10}, [1,4], true, APP.svg.element.viewBox.baseVal, false)
-    scanAll(
-        // svgUrlParams.step, 
-        // svgUrlParams.noise, 
-        // svgUrlParams.isSin, APP.svg.element.viewBox.baseVal, 
-        // svgUrlParams.useWorker
-    )
-    // console.log({svgUrlParams})
-    // console.log(svgUrlParams.logo)
-    // if (!svgUrlParams.logo) document.querySelector('svg #tag-logo').classList.toggle('hide')
-
-
-    // svgUrlParams
 }
 
 
