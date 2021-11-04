@@ -39,7 +39,7 @@ const defaults = {
     faseK: 0,
     logo: true, 
     isSin: true, 
-    dx:10,
+    // dx:10,
     // useWorker: false,
 }
 // Object.freeze(defaults);
@@ -337,26 +337,47 @@ function scanLine(y, width = 100, S) {
     const nInc =  dnoise / (2*dx)
     const PI = Math.PI
     const sin = isSin ? (x) => Math.sin(faseK*y+2*PI*x/step) : _=>1
-    let isLogoOld = -1;
+    let isLogoOld = -2;
     let x1 = -1;
     let oldN = -1;
+    let tr = 0;
+    // const setTr = last => curr => (last == -2 && curr ==)
+    //// [0] = -2 -> -1
+    // [0] = -1 -> 0
+    // [1] =  0 -> 1
+    // [2] =  0 -> 0
+    // [3] =  1 -> 0
+    // [4] =  0 -> -1
     for (let x=0; x<=width; x++) {
-        let el = isCircleOrLogo(...svg2html(x+dx,y, APP.svg.box))
-        let isLogo = el == 'vector' ? 1 : 0;
-        if (isLogo != isLogoOld && isLogoOld >=0) {
+        let isLogo = isCircleOrLogo(...svg2html(x+dx,y, APP.svg.box))
+        // let el = isCircleOrLogo(...svg2html(x+dx,y, APP.svg.box))
+        // let isLogo = (el == 'vector') ? 1 : (el == 'circle') ? 0 : -1;
+        if (isLogo != isLogoOld && isLogoOld >=-1) {
             x1 = x + 2*dx
-            oldN = noise[isLogo]
+            oldN = noise[isLogo] || oldN
+            tr = ((isLogoOld < 0) ? 1 : (isLogo < 0) ? 3 : 2)
         }
+        // tr = ((isLogo == 0 && isLogoOld != isLogo) && ((isLogoOld == -1) ? 1 : (isLogoOld == 1) ? 3 : 2)) || (isLogo > 0) ? tr : 0
+        
         isLogoOld = isLogo
         if (x < x1) {
-            let dir = isLogoOld*2 - 1
-            points.push([x,y + sin(x)*(oldN - nInc*(x1- x)*dir)])
+            if (isLogoOld >= 0 && tr == 2) {
+                let dir = isLogoOld*2 - 1
+                points.push([x,y + sin(x)*(oldN - nInc*(x1- x)*dir)])
+            } else {
+                let ddx = x1 - x
+                if ((ddx <= dx && tr == 1) || (ddx > dx && tr == 3))  {
+                    // drawPoints([[x,y]], "#FF8000");
+                    points.push([x,y + sin(x)*oldN])
+
+                }
+            }
             continue
         }
+        x1 = -1
 
-        else x1 = -1
-        if (!el) continue
-        // if (!isLogo) continue
+        // if (!el) continue
+        if (isLogo < 0) continue
         // points.push([x,y + isLogo*2])
         points.push([x,y + sin(x)*noise[isLogo]])
     }
@@ -382,10 +403,10 @@ let createPoint = ((x,y,svg=APP.svg.element) => {
 })
 const isCircleOrLogo = (x,y) => (p => 
     APP.svg.vector.isPointInFill(p) 
-        ? 'vector'
+        ? 1
         : APP.svg.circle.isPointInFill(p) 
-            ? 'circle'
-            : undefined)(createPoint(x, y))
+            ? 0
+            : -1)(createPoint(x, y))
 
 
 
