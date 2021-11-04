@@ -14,10 +14,14 @@ const isBool = v => (v === false || v === true);
 const APP = {svg:{}},
 createPath = str => {
     // console.log(str)
-    document.querySelectorAll('svg > path').forEach(p=>p?.remove())
-    let svg = document.createElementNS("http://www.w3.org/2000/svg", "path")
-    APP.svg.element.appendChild(svg)
-    svg.outerHTML = str
+    // console.dir( APP.svg.path)
+    // APP.svg.path.innerHTML = ''
+    APP.svg.path.innerHTML = str
+    // // document.querySelectorAll('svg > path').forEach(p=>p?.remove())
+    // let svg = document.createElementNS("http://www.w3.org/2000/svg", "path")
+    // APP.svg.path.appendChild(svg)
+    // // APP.svg.element.appendChild(svg)
+    // svg.outerHTML = str
 },
 svgWorker = registerWorker({onmessage:e=>createPath(e.data)});
 
@@ -279,9 +283,9 @@ function scanAll(S=settings, svgSize = APP.svg.element.viewBox.baseVal, useWorke
     
     // eightPoint();
      
-    svg = document.createElementNS("http://www.w3.org/2000/svg", "path")
-    // console.log(svg)
-    APP.svg.element.appendChild(svg)
+    // svg = document.createElementNS("http://www.w3.org/2000/svg", "path")
+    // // console.log(svg)
+    // APP.svg.element.appendChild(svg)
 
     if (useWorker) return svgWorker.postMessage(lines);
     
@@ -334,8 +338,6 @@ function scanLine(y, width = 100, S) {
     return points
 }
 
-APP.svg.vector = document.querySelector('svg #vector')
-APP.svg.circle = document.querySelector('svg #circle')
 
 const svg2html = (x, y, offset={x:0,y:0}) => [x,y]
 // [Math.round(x+offset.x), Math.round(y+offset.y)]
@@ -369,8 +371,17 @@ const isCircleOrLogo = (x,y) => (p =>
 svgOnload = function()
 {
     APP.svg.element = document.getElementById("svg") || document.body.appendChild(document.createElement('svg'));
-    createPoint = createPoint()//init
+
     APP.svg.box = APP.svg.element.getBoundingClientRect()
+
+    APP.svg.path = document.createElementNS("http://www.w3.org/2000/svg","g")
+    APP.svg.path.setAttribute('id','generated-path')
+    APP.svg.element.appendChild(APP.svg.path)
+    
+    APP.svg.vector = document.querySelector('svg #vector')
+    APP.svg.circle = document.querySelector('svg #circle')
+    createPoint = createPoint()//init
+    
 
     writeToInputs(settings,input)
     updateLogoBg(settings)
