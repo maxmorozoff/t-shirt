@@ -39,6 +39,7 @@ const defaults = {
     faseK: 0,
     logo: true, 
     isSin: true, 
+    dx:10,
     // useWorker: false,
 }
 // Object.freeze(defaults);
@@ -112,6 +113,7 @@ const createInput = (id, val, fn=_=>{} ) => {
             div.oninput = e=>{
                 fn(+e.target?.value)   
                 e.target.previousElementSibling.lastChild.value = e.target?.value
+                input(e.target)
             }       
             div.innerHTML = `
                 <label for="${id}">${id.split('-').join(' ')}: <output>${val}</output></label>
@@ -194,19 +196,25 @@ const writeToInputs = (arg=settings,fn=_=>{}) => {
             console.warn('no input with id:', id, 'creating input with js...')
             let div = createInput(id, val, e=>{obj[key]=e,fn()} )
             inputs.appendChild(div)
+            input(id, false)
             console.log('add this input to html, pls\n\n\n', div.outerHTML)
             return
         }
         console.log('test',{val}, val instanceof Boolean)
         if (val instanceof Boolean || isBool(val)) {
             inp.checked = val
+            input(inp, false)
+
             return
         }
         if (!('value' in inp)) {
             console.warn('no "value" in input:', inp)
+            input(inp, false)
             return
         }
         inp.value = val
+        input(inp, false)
+
     })
     // iter(arg)
     console.log({allIds}, {...settings})
@@ -219,14 +227,29 @@ const updateLogoBg = (s=settings) => {
     if (s.logo) document.querySelector('svg #tag-logo').style = ''
     else document.querySelector('svg #tag-logo').style = 'display: none;'
 }
-const input = e => {
-    console.log(e)
+const applyStroke = (element,width=1,color='grey', units = 'mm') => {
+    if (!element) return
+    console.dir(element)
+    // element.style = `stroke: ${color}; stroke-width: ${width+units};`
+
+    element.setAttribute('stroke-width', width + units)
+    element.setAttribute('stroke', color)
+}
+
+const input = (e,isEvent=true) => {
+    if (!e) return
+    console.log({e})
+
+    const id = e?.id || e
+    if (typeof e === 'string') e = document.querySelector(`input#`+e)
+    console.log({e})
     
 
-    switch (e?.id) {
+    switch (id) {
         case 'logo':
             // document.querySelector('svg #tag-logo').classList.toggle('hide')
             updateLogoBg(readFromInputElement(e))
+            if (!isEvent) break
             writeToUrl(readFromInputElements(document.querySelector('.controll'),settings))
             break;
         case 'step-x':
@@ -235,7 +258,7 @@ const input = e => {
         case 'noise-1':
         case 'isSin':
             e.previousElementSibling.lastChild.value = e.value
-
+            if (!isEvent) break
             const obj = readFromInputElement(e)
             settings = obj
 
@@ -256,8 +279,12 @@ const input = e => {
             // e.pre
 
             document.body.style = `--zoom:${e.value};`
-    
+            
+            break;
+        case 'stroke':
+            applyStroke(APP.svg.path, e.value)
         default:
+            if (!isEvent) break
             scanAll(readFromInputElements(document.querySelector('.controll'),settings))
             writeToUrl(settings)
             break;
@@ -302,7 +329,7 @@ function scanLine(y, width = 100, S) {
     // const {step = 10, noise = [1,3], isSin = false, deg=0,dx=step/4,faseK=0}
     let {noise, isSin, deg, faseK} = S
     let step = S.step.x
-    let dx = S?.dx || step/4
+    let dx = (S?.dx || S?.dx === 0) ? S.dx : step/4
     // console.log({S, step, noise, isSin, deg,dx,faseK})
     const points = []
     // const dnoise = Math.abs(Math.abs(noise[1]) - Math.abs(noise[0]) )
