@@ -9,6 +9,8 @@ const registerWorker = ({url, onmessage}) => {
     console.error('Your browser doesn\'t support web workers.');
 }
 
+const isBool = v => (v === false || v === true);
+
 const APP = {svg:{}},
 createPath = str => {
     // console.log(str)
@@ -21,11 +23,15 @@ svgWorker = registerWorker({onmessage:e=>createPath(e.data)});
 
 const defaults = {    
     step: {
-        x: 3,
-        y: 5
+        x: 13,
+        y: 15
     }, 
     deg: 0,
     noise: [
+        1,
+        3,
+    ],
+    noiseee: [
         1,
         3,
     ], 
@@ -34,9 +40,70 @@ const defaults = {
     isSin: true, 
     // useWorker: false,
 }
-Object.freeze(defaults);
+// Object.freeze(defaults);
+const deepFreeze = obj => {
+    Object.freeze(obj);
+    for(let key in obj) {
+        if(obj.hasOwnProperty(key) && typeof obj[key] === 'object') {
+            Object.freeze(obj[key]);
+        }
+    }
+}
 
-const settings = {...defaults,logo:false}
+let settings = JSON.parse(JSON.stringify(defaults))
+// {...defaults,logo:false}
+deepFreeze(defaults)
+
+
+const iterSettings = (obj, func=(id,key,val,obj)=>{}, pkey='') => {
+    const mkId = key => pkey ? pkey +'-'+ key : key;
+    for (const key in obj) {
+        const val = obj[key]
+        if (val instanceof Array || val instanceof Object) {
+            iterSettings(val, func, key)
+            continue
+        }
+        func(mkId(key), key, val, obj)
+    }
+}
+
+const writeWithId = (id, obj, val) => {
+    console.trace('writeWithId')
+    const path = id.split('-')
+    console.log('wrrr', {id,val,obj},path,obj.logo)
+    if (!path.length) return obj
+
+    const look = (ref=obj, key=path.shift()) => {
+        // console.log('wrrr', {ref,key},path)
+
+        if (path.length) return look(ref[key]) 
+        // console.log(key,ref[key],!isNaN(ref[key]), ref[key] === false || ref[key] === true, ref[key].constructor, typeof ref[key])
+        if (!isNaN(ref[key])) val = (isBool(ref[key]) )
+            ? (val == 'true' || val == true)
+            : +val
+        console.log({old:ref[key],val})
+        ref[key] = val
+        return obj
+    }
+
+    const res = look()
+    console.log('wrrr', {res,obj},path)
+    return res
+    // return look()
+}
+
+const readWithId = (id, obj) => {
+    const path = id.split('-')
+    if (!path.length) return null
+
+    const look = (ref=obj, key=path.shift()) => {
+        if (path.length) return look(ref[key]) 
+        // if (ref[key] instanceof Number) val = +val
+        return ref[key]
+    }
+
+    return look()
+}
 
 const createInput = (id, val, fn=_=>{} ) => {
     let div = document.createElement('div')    
@@ -66,75 +133,128 @@ const createInput = (id, val, fn=_=>{} ) => {
 
 const readFromUrl = (obj=defaults) => {    
     // const p = new URLSearchParams('?p='+JSON.stringify(settings));
-    const p = new URLSearchParams(location.search);
+    const params = new URLSearchParams(location.search);
 
-    const s = {...obj}
-    
-    if (!p.has('p')) return s
-    try {
-        const ps = JSON.parse(p.get('p'))
-
-        for (const key in s) {
-            if (ps[key]) s[key] = ps[key]
-        }
-    } catch (e) {
-        console.error(e)
+    for (let p of params) {
+        console.log({p});
+        writeWithId(p[0],settings,p[1])
     }
-    return s
+    // console.log('https://tag.morozov.page/mklogo/'+window.location.search)
+    document.querySelector('svg a').setAttribute('href','https://tag.morozov.page/mklogo/'+window.location.search)
+
+    return settings
+    // console.log({p},p.toString())
+    // const s = JSON.parse(JSON.stringify(obj))
+    // // {...obj}
+    
+    // if (!p.has('p')) return s
+    // try {
+    //     const ps = JSON.parse(p.get('p'))
+    //     console.log(ps)
+
+    //     for (const key in s) {
+    //         if (ps[key]) s[key] = ps[key]
+    //     }
+    // } catch (e) {
+    //     console.error(e)
+    // }
+    // return s
 }
 const writeToUrl = (obj=settings, def=defaults, skey='p') => {    
     const s = {}
-    for (const key in def) {
-        if (obj[key] != def[key]) s[key] = obj[key]
-    }
-    const str = JSON.stringify(s)
-    const p = new URLSearchParams(`?${skey}=`+str);
+    console.log(obj, settings, obj === settings)
+    // for (const key in def) {
+    //     console.log({key}, obj[key] != def[key] ,def[key],obj[key])
+    //     if (obj[key] != def[key]) s[key] = obj[key]
+    // }
+    // const iter = (o) => {
+    //     for (const key in o) {
+    //         console.log({key}, obj[key] != def[key] ,def[key],obj[key])
 
-    window.history.replaceState({}, '', `${location.pathname}?${p}`);
+    //         const val = o[key]
+    //         if (val instanceof Array || val instanceof Object) {
+    //             iter(val)
+    //             continue
+    //         }
+    //         if (val != def[key]) s[key] = val
+    //     }
+    // }
+    // iter(obj)
+    iterSettings(obj,(id,key,val,obj)=>{
+        const defVal = readWithId(id, def)
+        if (defVal != undefined && val != defVal) s[id] = val
+    })
+    // const str = JSON.stringify(s)
+    // const p = new URLSearchParams(`?${skey}=`+str);
+    const p = new URLSearchParams(s);
+    console.log(p.toString())
 
+    // window.history.replaceState({}, '', `${location.pathname}?${p}`);
+    window.history.pushState({}, '', `${location.pathname}?${p}`);
+
+    document.querySelector('svg a').setAttribute('href','https://tag.morozov.page/mklogo/'+window.location.search)
+    // document.querySelector('svg a').href = 'https://tag.morozov.page/mklogo/'+window.location.search
+    // document.querySelector('svg a').href = window.location.href
+
+    return s
     return str
 }
 
 // console.log('write',writeToUrl())
 // console.log('read',readFromUrl())
+settings = readFromUrl()
 
-const writeToInputs = (arg=settings) => {
+
+const readFromInput = (id, val, obj=settings) => {
+    obj = writeWithId(id, arg, val)
+}
+const readFromInputElement = (el, obj=settings) => {
+    console.log('readFromInputElement',{el,type:el.type})
+    let val, id = el.id;
+    if (el.type == 'checkbox') val = el.checked
+    else if (el.type == 'range') val = +el.value
+    else return obj
+
+    obj = writeWithId(id, obj, val)
+
+    return obj
+}
+const readFromInputElements = (doc=document,obj=settings) => 
+    doc.querySelectorAll('input').forEach(el=>readFromInputElement(el,obj))
+
+    
+const writeToInputs = (arg=settings,fn=_=>{}) => {
+    console.log("s.logo",settings.logo)
     // const inputs = document.querySelectorAll('.controll input')
     const inputs = document.querySelector('.controll')
     const getInput = id => inputs.querySelector(`#${id}`)
     const allIds = []
-    const iter = (obj, pkey='') => {
-        const mkId = key => pkey ? pkey +'-'+ key : key;
-        for (const key in obj) {
-            const val = obj[key]
-            if (val instanceof Array || val instanceof Object) {
-                iter(val,key)
-                continue
-            }
-            console.log(mkId(key),getInput(mkId(key)),{obj,pkey,val})
-            const id = mkId(key)
-            const inp = getInput(id) 
-            allIds.push(id)
-            if (!inp) {
-                console.warn('no input with id:', id, 'creating input with js...')
-                let div = createInput(id, val, e=>{obj[key]=e} )
-                inputs.appendChild(div)
-                continue
-            }
-            if (val instanceof Boolean) {
-                inp.checked = val
-                continue
-            }
-            if (!('value' in inp)) {
-                console.warn('no "value" in input:', inp)
-                continue
-            }
-            inp.value = val
-
+    // console.log(mkId(key),getInput(mkId(key)),{obj,pkey,val})
+    // const id = mkId(key)
+    iterSettings(arg,(id,key,val,obj)=>{
+        const inp = getInput(id) 
+        allIds.push(id)
+        if (!inp) {
+            console.warn('no input with id:', id, 'creating input with js...')
+            let div = createInput(id, val, e=>{obj[key]=e,fn()} )
+            inputs.appendChild(div)
+            console.log('add this input to html, pls\n\n\n', div.outerHTML)
+            return
         }
-    }
-    iter(arg)
-    console.log(allIds)
+        console.log('test',{val}, val instanceof Boolean)
+        if (val instanceof Boolean || isBool(val)) {
+            inp.checked = val
+            return
+        }
+        if (!('value' in inp)) {
+            console.warn('no "value" in input:', inp)
+            return
+        }
+        inp.value = val
+    })
+    // iter(arg)
+    console.log({allIds}, {...settings})
+    return arg
 }
 // writeToInputs(settings)
 
@@ -143,35 +263,35 @@ const writeToInputs = (arg=settings) => {
 // console.log(createInput('djdjdj',false))
 
 // http://localhost:5500/?sx=14.05&sy=15.55&wave0=9.8&wave1=-10&issin=true&worker=true
-const searchParams = new URLSearchParams(location.search);
-    let svgUrlParams = {
-        step: {
-            x: searchParams.has('sx') ? +searchParams.get('sx') : 3,
-            y: searchParams.has('sy') ? +searchParams.get('sy') : 5
-        }, 
-        noise: [
-            searchParams.has('wave0') ? +searchParams.get('wave0') : 1,
-            searchParams.has('wave1') ? +searchParams.get('wave1') : 3,
-        ], 
-        logo: searchParams.has('logo') ? ('true'===searchParams.get('logo')) : true, 
-        isSin: searchParams.has('issin') ? ('true'===searchParams.get('issin')) : true, 
-        useWorker: searchParams.has('worker') ? ('true'===searchParams.get('worker')) : false,
-    }
-    console.log(!!searchParams.get('logo'),searchParams.get('logo'))
+// const searchParams = new URLSearchParams(location.search);
+//     let svgUrlParams = {
+//         step: {
+//             x: searchParams.has('sx') ? +searchParams.get('sx') : 3,
+//             y: searchParams.has('sy') ? +searchParams.get('sy') : 5
+//         }, 
+//         noise: [
+//             searchParams.has('wave0') ? +searchParams.get('wave0') : 1,
+//             searchParams.has('wave1') ? +searchParams.get('wave1') : 3,
+//         ], 
+//         logo: searchParams.has('logo') ? ('true'===searchParams.get('logo')) : true, 
+//         isSin: searchParams.has('issin') ? ('true'===searchParams.get('issin')) : true, 
+//         useWorker: searchParams.has('worker') ? ('true'===searchParams.get('worker')) : false,
+//     }
+//     console.log(!!searchParams.get('logo'),searchParams.get('logo'))
 
 
-const updateSearchParams = obj => {
-    const params = new URLSearchParams(location.search);
-    params.set('sx', obj?.step.x);
-    params.set('sy', obj?.step.y);
-    params.set('wave0', obj?.noise[0]);
-    params.set('wave1', obj?.noise[1]);
-    params.set('logo', obj?.logo);
-    params.set('issin', obj?.isSin);
-    params.set('worker', obj?.useWorker);
+// const updateSearchParams = obj => {
+//     const params = new URLSearchParams(location.search);
+//     params.set('sx', obj?.step.x);
+//     params.set('sy', obj?.step.y);
+//     params.set('wave0', obj?.noise[0]);
+//     params.set('wave1', obj?.noise[1]);
+//     params.set('logo', obj?.logo);
+//     params.set('issin', obj?.isSin);
+//     params.set('worker', obj?.useWorker);
 
-    window.history.replaceState({}, '', `${location.pathname}?${params}`);
-}
+//     window.history.replaceState({}, '', `${location.pathname}?${params}`);
+// }
    
 
 // 0: "step-x"
@@ -183,13 +303,19 @@ const updateSearchParams = obj => {
 // 6: "isSin"
 // 7: "useWorker"
 
+const updateLogoBg = (s=settings) => {
+    if (s.logo) document.querySelector('svg #tag-logo').style = ''
+    else document.querySelector('svg #tag-logo').style = 'display: none;'
+}
 const input = e => {
     console.log(e)
+    
+
     switch (e?.id) {
         case 'logo':
             // document.querySelector('svg #tag-logo').classList.toggle('hide')
-            if (e.checked) document.querySelector('svg #tag-logo').style = ''
-            else document.querySelector('svg #tag-logo').style = 'display: none;'
+            updateLogoBg(readFromInputElement(e))
+            writeToUrl(readFromInputElements(document.querySelector('.controll'),settings))
             break;
         case 'step-x':
         case 'step-y':
@@ -199,22 +325,29 @@ const input = e => {
             // e.nextElementSibling.value = e.value
             e.previousElementSibling.lastChild.value = e.value
 
-            let step = {
-                x:+document.querySelector('#step-x').value,
-                y:+document.querySelector('#step-y').value,
-            },
-            noise = [
-                +document.querySelector('#noise-0').value,
-                +document.querySelector('#noise-1').value,
-            ],
-            isSin = document.querySelector('#isSin').checked,
-            logo = document.querySelector('#logo').checked;
-            let all = document.querySelectorAll('input')
+            // let step = {
+            //     x:+document.querySelector('#step-x').value,
+            //     y:+document.querySelector('#step-y').value,
+            // },
+            // noise = [
+            //     +document.querySelector('#noise-0').value,
+            //     +document.querySelector('#noise-1').value,
+            // ],
+            // isSin = document.querySelector('#isSin').checked,
+            // logo = document.querySelector('#logo').checked;
+            // let all = document.querySelectorAll('input')
 
-            all.forEach(inp => inp.disabled = true)
-            scanAll(step, noise, isSin)
-            all.forEach(inp => inp.disabled = false)
-            updateSearchParams({step,noise,isSin,useWorker:true,logo})
+            const obj = readFromInputElement(e)
+            settings = obj
+
+            console.log(obj)
+            writeToUrl(settings)
+            scanAll(obj)
+
+            // all.forEach(inp => inp.disabled = true)
+            // scanAll(step, noise, isSin)
+            // all.forEach(inp => inp.disabled = false)
+            // updateSearchParams({step,noise,isSin,useWorker:true,logo})
             break;
         case 'zoom': 
             // console.dir(e)
@@ -226,8 +359,11 @@ const input = e => {
             document.body.style = `--zoom:${e.value};`
     
         default:
+            scanAll(readFromInputElements(document.querySelector('.controll'),settings))
+            writeToUrl(settings)
             break;
     }
+    
 }
 
 
@@ -244,15 +380,16 @@ const input = e => {
 // })
 
 
-function scanAll(step={x:3,y:5}, noise = [1,3], isSin = true, svgSize = APP.svg.element.viewBox.baseVal, useWorker=true, faseStep=.1) {
+function scanAll(S=settings, svgSize = APP.svg.element.viewBox.baseVal, useWorker=true) {
+    // function scanAll(step={x:3,y:5}, noise = [1,3], isSin = true, svgSize = APP.svg.element.viewBox.baseVal, useWorker=true, faseK=.1) {
     let svg = document.querySelectorAll('svg > path')
     // svg.forEach(p=>p?.remove())
 
     const lines = []
-    console.log(arguments)
+    // console.log(arguments)
     
-    for (let y = 0; y < svgSize.height; y+=step.y) {
-        let line = scanLine(y, svgSize.width, step.x, noise, isSin,0,step.x/4,faseStep)
+    for (let y = 0; y < svgSize.height; y+=S.step.y) {
+        let line = scanLine(y, svgSize.width, S)
         if (!line.length) continue
         lines.push(line)
     }   
@@ -274,12 +411,18 @@ function scanAll(step={x:3,y:5}, noise = [1,3], isSin = true, svgSize = APP.svg.
 }
 
 
-function scanLine(y, width = 100, step = 10, noise = [1,3], isSin = false, deg=0,dx=step/4,faseK=0) {
+function scanLine(y, width = 100, S) {
+    // const {step = 10, noise = [1,3], isSin = false, deg=0,dx=step/4,faseK=0}
+    let {noise, isSin, deg, faseK} = S
+    let step = S.step.x
+    let dx = S?.dx || step/4
+    // console.log({S, step, noise, isSin, deg,dx,faseK})
     const points = []
-    const dnoise = Math.abs(Math.abs(noise[1]) - Math.abs(noise[0]) )
+    // const dnoise = Math.abs(Math.abs(noise[1]) - Math.abs(noise[0]) )
+    const dnoise = (Math.abs(noise[1]) - Math.abs(noise[0]) )
     const nInc =  dnoise / (2*dx)
     const PI = Math.PI
-    const sin = (x) => Math.sin(faseK*y+2*PI*x/step)
+    const sin = isSin ? (x) => Math.sin(faseK*y+2*PI*x/step) : _=>1
     let isLogoOld = -1;
     let x1 = -1;
     let oldN = -1;
@@ -365,6 +508,9 @@ svgOnload = function()
     // return
     // eightPoint();
 
+    writeToInputs(settings,input)
+    updateLogoBg(settings)
+
     console.dir(APP.svg.element.querySelector('#vector'))
     // console.log(document.elementFromPoint(300, 100))
     console.log(isCircleOrLogo(300, 100))
@@ -398,14 +544,14 @@ svgOnload = function()
     // drawPoints(genLine, "#0000FF");
     // scanAll({x:15,y:10}, [1,4], true, APP.svg.element.viewBox.baseVal, false)
     scanAll(
-        svgUrlParams.step, 
-        svgUrlParams.noise, 
-        svgUrlParams.isSin, APP.svg.element.viewBox.baseVal, 
-        svgUrlParams.useWorker
+        // svgUrlParams.step, 
+        // svgUrlParams.noise, 
+        // svgUrlParams.isSin, APP.svg.element.viewBox.baseVal, 
+        // svgUrlParams.useWorker
     )
-    console.log({svgUrlParams})
-    console.log(svgUrlParams.logo)
-    if (!svgUrlParams.logo) document.querySelector('svg #tag-logo').classList.toggle('hide')
+    // console.log({svgUrlParams})
+    // console.log(svgUrlParams.logo)
+    // if (!svgUrlParams.logo) document.querySelector('svg #tag-logo').classList.toggle('hide')
 
 
     // svgUrlParams
