@@ -31,10 +31,7 @@ const defaults = {
         1,
         3,
     ],
-    noiseee: [
-        1,
-        3,
-    ], 
+    stroke: 1,
     faseK: 0,
     logo: true, 
     isSin: true, 
@@ -75,6 +72,7 @@ const writeWithId = (id, obj, val) => {
 
     const look = (ref=obj, key=path.shift()) => {
         // console.log('wrrr', {ref,key},path)
+        if (!(key in ref)) return obj
 
         if (path.length) return look(ref[key]) 
         // console.log(key,ref[key],!isNaN(ref[key]), ref[key] === false || ref[key] === true, ref[key].constructor, typeof ref[key])
