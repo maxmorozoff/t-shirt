@@ -80,7 +80,27 @@
             left: -100%;
             top: -100%;
         }
-        
+        #download-svg {
+            position: fixed;
+            /* position: absolute; */
+            bottom: 0;
+            right: 0;
+            width: 3rem;
+            height: 3rem;
+            max-width: 48px;
+            max-height: 48px;
+            margin: 1.8rem;
+            border-radius: 50%;
+            border: 0;
+            background-repeat: no-repeat;
+            background-size: 60%;
+            background-position: center;
+            background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' enable-background='new 0 0 24 24' height='24px' viewBox='0 0 24 24' width='24px' fill='%23ffffff'%3E%3Cg%3E%3Crect fill='none' height='24' width='24'/%3E%3C/g%3E%3Cg%3E%3Cpath d='M18,15v3H6v-3H4v3c0,1.1,0.9,2,2,2h12c1.1,0,2-0.9,2-2v-3H18z M17,11l-1.41-1.41L13,12.17V4h-2v8.17L8.41,9.59L7,11l5,5 L17,11z'/%3E%3C/g%3E%3C/svg%3E");
+            background-color: #3700B3;
+            filter: drop-shadow(
+                1px 2px 8px hsl(258, 100%, 15%)
+            );
+        }
     </style>
 </head>
 <body>
@@ -144,6 +164,7 @@
             </div>
         </div>
     </details>
+    <button id="download-svg" onclick="downloadSvg()"></button>
     <div id="dpi"></div>
     <script src="index.js" async></script>
     <script>
@@ -158,6 +179,12 @@
             element.click();
         
             document.body.removeChild(element);
+        }
+
+        const downloadSvg = (svg=document.querySelector('svg')) => {
+            const svgLink = document.querySelector('svg > a')
+            svgLink.style = ''
+            download(`t-shirt-logo-${Date.now()}.svg`,svg.outerHTML)
         }
 
         document.querySelector('span#dpi-label').innerText = `(dpi=${document.getElementById("dpi").offsetWidth})`
