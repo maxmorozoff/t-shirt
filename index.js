@@ -11,17 +11,29 @@ const registerWorker = ({url, onmessage}) => {
 
 const isBool = v => (v === false || v === true);
 
+var bitmap = Array(), lastBitMapLen=0;
+
+try {
+    let lsbitmap = JSON.parse(localStorage?.bitmap)
+    if (lsbitmap.length) bitmap = lsbitmap
+    lastBitMapLen = lsbitmap.length
+} catch (e) { console.warn(e) }
+
+// console.log({bitmap})
+
 const APP = {svg:{}},
 createPath = str => {
-    // console.log(str)
-    // console.dir( APP.svg.path)
-    // APP.svg.path.innerHTML = ''
+    
+    console.time('addSVG')
     APP.svg.path.innerHTML = str
-    // // document.querySelectorAll('svg > path').forEach(p=>p?.remove())
-    // let svg = document.createElementNS("http://www.w3.org/2000/svg", "path")
-    // APP.svg.path.appendChild(svg)
-    // // APP.svg.element.appendChild(svg)
-    // svg.outerHTML = str
+    console.timeEnd('addSVG')
+
+    if (bitmap.length <= lastBitMapLen) return
+
+    console.time('JSON')
+    lastBitMapLen = bitmap.length
+    localStorage.bitmap = JSON.stringify(bitmap)
+    console.timeEnd('JSON')
 },
 svgWorker = registerWorker({onmessage:e=>createPath(e.data)});
 
@@ -360,6 +372,16 @@ function jsf32(a, b, c, d) {
     }
 }
 
+
+function random(seed = 1) {
+    // var seed = 1;
+
+    return _ => {
+        var x = Math.sin(seed++) * 10000;
+        return x - Math.floor(x);
+    }
+}
+
 // Create xmur3 state:
 var seed = xmur3("TAG-2022");
 // Output four 32-bit hashes to provide the seed for sfc32.
@@ -372,8 +394,10 @@ var rand = sfc32(seed(), seed(), seed(), seed());
 
 function scanAll(S=settings, svgSize = APP.svg.element.viewBox.baseVal, useWorker=true) {
     // function scanAll(step={x:3,y:5}, noise = [1,3], isSin = true, svgSize = APP.svg.element.viewBox.baseVal, useWorker=true, faseK=.1) {
-    let svg = document.querySelectorAll('svg > path')
+    // let svg = document.querySelectorAll('svg > path')
     // svg.forEach(p=>p?.remove())
+
+    console.time('scanAll')
     seed = xmur3("TAG-2022");
 
     // rand = sfc32(seed(), seed(), seed(), seed());
@@ -381,103 +405,80 @@ function scanAll(S=settings, svgSize = APP.svg.element.viewBox.baseVal, useWorke
     // rand = xoshiro128ss(seed(), seed(), seed(), seed());
     // rand = mulberry32(seed());
 
-    const lines = []
-    // console.log(arguments)
     
-    for (let y = 0; y < svgSize.height; y+=S.step.y) {
-        let line = scanLine(y, svgSize.width, S)
+    const {width, height} = svgSize
+    const xstep = S.step.x
+    const ystep = Math.round(S.step.y)
+    const dx = (S?.dx || S?.dx === 0) ? Math.round(S.dx) : Math.round(xstep/4)
+    const dx2 = 2*dx
+    const {noise, isSin, deg, faseK} = S
+    const dnoise = (Math.abs(noise[1]) - Math.abs(noise[0]) )
+    // const dnoise = Math.abs(Math.abs(noise[1]) - Math.abs(noise[0]) )
+    const nInc =  dnoise / (dx2)
+    const PI = Math.PI
+    const sin = isSin ? (x,y) => Math.sin(faseK*y+2*PI*x/xstep+rand()) : _=>1
+    
+    const lines = Array(svgSize.height)
+    const blinelen = Math.floor(width+dx)
+    
+    function scanLine(y) {
+        const points = []
+        const bitmapline = Array(blinelen)
+        let isLogoOld = -2;
+        let isLogo = -2;
+        let x1 = -1;
+        let oldN = -1;
+        let tr = 0;
+        let ddx = -1;
+
+        for (let x=0; x<=width; x++) {
+            isLogo = isCircleOrLogo(x+dx,y)
+            bitmapline[x+dx] = isLogo
+
+            if (isLogo != isLogoOld && isLogoOld >=-1) {
+                x1 = x + dx2
+                oldN = noise[isLogo] || oldN
+                tr = ((isLogoOld < 0) ? 1 : (isLogo < 0) ? 3 : 2)
+            }
+
+            isLogoOld = isLogo
+            if (x < x1) {
+                ddx = x1 - x
+                if (isLogoOld >= 0 && tr == 2) {
+                    points.push([x,y + sin(x,y)*(oldN - nInc*ddx*(isLogoOld*2-1))])
+                } else {
+                    if ((ddx <= dx && tr == 1) || (ddx > dx && tr == 3))  {
+                        // drawPoints([[x,y]], "#FF8000");
+                        points.push([x,y + sin(x,y)*oldN])
+                    }
+                }
+                continue
+            }
+            x1 = -1
+    
+            if (isLogo < 0) continue
+
+            points.push([x,y + sin(x,y)*noise[isLogo]])
+        }
+        // drawPoints(points, "#FF8000");
+        bitmap[y] = bitmapline;
+        return points
+    }
+    for (let y = 0; y < height; y+=ystep) {
+        let line = scanLine(y)
         if (!line.length) continue
-        lines.push(line)
+        lines[y] = line
     }   
+    console.timeEnd('scanAll')
     
-    // eightPoint();
-     
-    // svg = document.createElementNS("http://www.w3.org/2000/svg", "path")
-    // // console.log(svg)
-    // APP.svg.element.appendChild(svg)
 
     if (useWorker) return svgWorker.postMessage(lines);
     
     createPath( lines.reduce((parent,line)=>parent+svgPath(line, bezierCommand),'') )
-    
-    // lines.forEach(points=>drawPoints(points, "#FF8000"));
-
-    // svg.outerHTML = svgPath(genLine, bezierCommand)
-    // svg.outerHTML = lines.reduce((parent,line)=>parent+svgPath(line, bezierCommand))
-}
-
-function random(seed = 1) {
-    // var seed = 1;
-
-    return _ => {
-        var x = Math.sin(seed++) * 10000;
-        return x - Math.floor(x);
-    }
 }
 
 
-function scanLine(y, width = 100, S) {
-    // const {step = 10, noise = [1,3], isSin = false, deg=0,dx=step/4,faseK=0}
-    let {noise, isSin, deg, faseK} = S
-    let step = S.step.x
-    let dx = (S?.dx || S?.dx === 0) ? S.dx : step/4
-    // console.log({S, step, noise, isSin, deg,dx,faseK})
-    const points = []
-    // const dnoise = Math.abs(Math.abs(noise[1]) - Math.abs(noise[0]) )
-    const dnoise = (Math.abs(noise[1]) - Math.abs(noise[0]) )
-    const nInc =  dnoise / (2*dx)
-    const PI = Math.PI
-    // const rand = Math.random
-    // const rand = random(-100000)
-    const sin = isSin ? (x) => Math.sin(faseK*y+2*PI*x/step+rand()) : _=>1
-    let isLogoOld = -2;
-    let x1 = -1;
-    let oldN = -1;
-    let tr = 0;
-    // const setTr = last => curr => (last == -2 && curr ==)
-    //// [0] = -2 -> -1
-    // [0] = -1 -> 0
-    // [1] =  0 -> 1
-    // [2] =  0 -> 0
-    // [3] =  1 -> 0
-    // [4] =  0 -> -1
-    for (let x=0; x<=width; x++) {
-        let isLogo = isCircleOrLogo(...svg2html(x+dx,y, APP.svg.box))
-        // let el = isCircleOrLogo(...svg2html(x+dx,y, APP.svg.box))
-        // let isLogo = (el == 'vector') ? 1 : (el == 'circle') ? 0 : -1;
-        if (isLogo != isLogoOld && isLogoOld >=-1) {
-            x1 = x + 2*dx
-            oldN = noise[isLogo] || oldN
-            tr = ((isLogoOld < 0) ? 1 : (isLogo < 0) ? 3 : 2)
-        }
-        // tr = ((isLogo == 0 && isLogoOld != isLogo) && ((isLogoOld == -1) ? 1 : (isLogoOld == 1) ? 3 : 2)) || (isLogo > 0) ? tr : 0
-        
-        isLogoOld = isLogo
-        if (x < x1) {
-            if (isLogoOld >= 0 && tr == 2) {
-                let dir = isLogoOld*2 - 1
-                points.push([x,y + sin(x)*(oldN - nInc*(x1- x)*dir)])
-            } else {
-                let ddx = x1 - x
-                if ((ddx <= dx && tr == 1) || (ddx > dx && tr == 3))  {
-                    // drawPoints([[x,y]], "#FF8000");
-                    points.push([x,y + sin(x)*oldN])
 
-                }
-            }
-            continue
-        }
-        x1 = -1
-
-        // if (!el) continue
-        if (isLogo < 0) continue
-        // points.push([x,y + isLogo*2])
-        points.push([x,y + sin(x)*noise[isLogo]])
-    }
-    // drawPoints(points, "#FF8000");
-
-    return points
-}
 
 
 const svg2html = (x, y, offset={x:0,y:0}) => [x,y]
@@ -495,11 +496,14 @@ let createPoint = ((x,y,svg=APP.svg.element) => {
     }
 })
 const isCircleOrLogo = (x,y) => (p => 
-    APP.svg.vector.isPointInFill(p) 
-        ? 1
-        : APP.svg.circle.isPointInFill(p) 
-            ? 0
-            : -1)(createPoint(x, y))
+    (bitmap[y]) 
+    ? bitmap[y][x] ?? -2
+    : APP.svg.vector.isPointInFill(p) 
+    ? 1
+    : APP.svg.circle.isPointInFill(p) 
+    ? 0
+    : -1
+)(createPoint(x, y))
 
 
 
