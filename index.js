@@ -337,6 +337,15 @@ function scanAll(S=settings, svgSize = APP.svg.element.viewBox.baseVal, useWorke
     // svg.outerHTML = lines.reduce((parent,line)=>parent+svgPath(line, bezierCommand))
 }
 
+function random(seed = 1) {
+    // var seed = 1;
+
+    return _ => {
+        var x = Math.sin(seed++) * 10000;
+        return x - Math.floor(x);
+    }
+}
+
 
 function scanLine(y, width = 100, S) {
     // const {step = 10, noise = [1,3], isSin = false, deg=0,dx=step/4,faseK=0}
@@ -349,7 +358,9 @@ function scanLine(y, width = 100, S) {
     const dnoise = (Math.abs(noise[1]) - Math.abs(noise[0]) )
     const nInc =  dnoise / (2*dx)
     const PI = Math.PI
-    const sin = isSin ? (x) => Math.sin(faseK*y+2*PI*x/step) : _=>1
+    // const rand = Math.random
+    const rand = random(-100000)
+    const sin = isSin ? (x) => Math.sin(faseK*y+2*PI*x/step*rand()) : _=>rand()
     let isLogoOld = -2;
     let x1 = -1;
     let oldN = -1;
