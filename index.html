@@ -382,13 +382,14 @@
             </div>
         </div>
     </details>
-    <button id="download-svg" onclick="downloadSvg()"></button>
+    <button id="download-svg" onclick="downloadSvgAll()"></button>
     <div id="dpi"></div>
     <script src="index.js" async></script>
     <script>
-        function download(filename, text) {
-            var element = document.createElement('a');
-            element.setAttribute('href', 'data:text/plain;charset=utf-8,' + encodeURIComponent(text));
+        async function download(filename, text) {
+            const element = document.createElement('a');
+            const uriText = await encodeURIComponent(text)
+            element.setAttribute('href', 'data:text/plain;charset=utf-8,' + uriText);
             element.setAttribute('download', filename);
         
             element.style.display = 'none';
@@ -397,12 +398,26 @@
             element.click();
         
             document.body.removeChild(element);
+            return uriText
         }
 
-        const downloadSvg = (svg=document.querySelector('svg')) => {
+        const downloadSvg = async (svg=document.querySelector('svg')) => {
             const svgLink = document.querySelector('svg > a')
             svgLink.style = ''
-            download(`t-shirt-logo-${Date.now()}.svg`,svg.outerHTML)
+            return download(`t-shirt-logo-${Date.now()}.svg`,svg.outerHTML)
+        }
+
+        const downloadSvgAll = (svgs=document.querySelectorAll('svg')) => {
+            const time = Date.now()
+            svgs.forEach(svg=>{
+                if (svg.id == 'mockup') {
+                    const what = document.querySelector('#svg')
+                    svg.querySelector('defs').appendChild(what)
+                    download(`t-shirt-logo-${time}-mockup.svg`,svg.outerHTML)
+                    return;
+                }
+                download(`t-shirt-logo-${time}.svg`,svg.outerHTML)
+            })
         }
 
         document.querySelector('span#dpi-label').innerText = `(dpi=${document.getElementById("dpi").offsetWidth})`
