@@ -1,23 +1,17 @@
+// The smoothing ratio
+var smoothing = 0.2
+
 onmessage = function (e) {
-    console.log('Worker: Message received from main script', e);
+    // console.log('Worker: Message received from main script', e);
+    if (!e.data.length && e.data.constructor == Number) {
+        smoothing = e.data
+        console.log('new smoothing', {smoothing})
+        return
+    }
 
     const lines = e.data
     postMessage(lines.reduce((parent,line)=>parent+svgPath(line, bezierCommand),''))
-    // postMessage([
-    //     testRandom(100,1000),
-    //     testRandom(100,1000),
-    //     testRandom(100,1000),
-    //     testRandom(100,1000),
-    //     testRandom(100,1000),
-    // ])
 }
-
-
-
-
-// The smoothing ratio
-const smoothing = 0.2
-
 
 // Properties of a line 
 // I:  - pointA (array) [x,y]: coordinates

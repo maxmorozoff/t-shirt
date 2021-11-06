@@ -52,9 +52,12 @@
             display: flex;
             flex-direction: column;
         }
-        .controll > div.row {
+        .controll > div.row:not(.left) {
             flex-direction: row;
-            justify-content: space-evenly;
+            /* justify-content: space-evenly; */
+        }
+        .controll > div.row.left {
+            flex-direction: row;
         }
 
         .hide {
@@ -79,6 +82,7 @@
         .svg {
             text-align: center;
         }
+        svg > text,
         svg > a {
             display: none;
         }
@@ -119,11 +123,12 @@
 </head>
 <body>
     <div class="svg">
-
-        <!-- <svg id="svg" viewBox="0 0 1266 1266" fill="none" xmlns="http://www.w3.org/2000/svg"> -->
-        <svg id="svg" width="1266" height="1266" viewBox="0 0 1266 1266" fill="blue" xmlns="http://www.w3.org/2000/svg" onload="javascript:svgOnload(this)">
+        <svg id="svg" width="1266" height="1266" viewBox="0 0 1266 1266" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <text x="1166" y="1166" text-anchor="end" fill="grey">
+                    https://tag.morozov.page/mklogo/
+                </text>
             <a href="https://tag.morozov.page/mklogo/">
-                <text x="1166" y="1166" text-anchor="end" text-decoration="underline">
+                <text x="1166" y="1166" text-anchor="end" fill="blue" text-decoration="underline">
                     https://tag.morozov.page/mklogo/
                 </text>
             </a>
@@ -137,20 +142,10 @@
         <summary>
             SETTINGS 
         </summary>
-        <!-- 
-0: "step-x"
-1: "step-y"
-2: "deg"
-3: "noise-0"
-4: "noise-1"
-5: "logo"
-6: "isSin"
-7: "useWorker" 
--->
         <div class="controll">
             <div>
-                <label for="zoom">Zoom: <span id="dpi-label"></span>  <output></output></label>
-                <input type="range" min="0.5" max="10" value="1" step=".5" id="zoom" oninput="input(this)">
+                <label for="zoom">Zoom: <span id="dpi-label"></span>  <output>100%</output></label>
+                <input type="range" min="0.25" max="10" value="1" step=".25" id="zoom" oninput="input(this)">
             </div>
             <div class="row">
                 <div>
@@ -167,24 +162,62 @@
                 <input type="checkbox" id="logo" checked oninput="input(this)">
             </div>
             <div>
-                <label for="isSin">Add wave:</label>
+                <label for="isSin">Add sine wave:</label>
                 <input type="checkbox" id="isSin" checked oninput="input(this)">
             </div>
             <div>
                 <label for="step-x">Step X: <output></output></label>
-                <input type="range" min="0.5" max="50" value="3" step=".5" id="step-x" oninput="input(this)">
+                <input type="range" min="1" max="100" value="3" step="1" id="step-x" oninput="input(this)">
             </div>
             <div>
                 <label for="step-y">Step Y: <output></output></label>
-                <input type="range" min="0.5" max="50" value="5" step=".5" id="step-y" oninput="input(this)">
+                <input type="range" min="1" max="100" value="5" step="1" id="step-y" oninput="input(this)">
             </div>
             <div>
                 <label for="noise-0">Wave 0: <output></output></label>
-                <input type="range" min="-10" max="10" value="1" step=".1" id="noise-0" oninput="input(this)">
+                <input type="range" min="-30" max="30" value="1" step=".05" id="noise-0" oninput="input(this)">
             </div>
             <div>
                 <label for="noise-1">Wave 1: <output></output></label>
-                <input type="range" min="-10" max="10" value="2" step=".1" id="noise-1" oninput="input(this)">
+                <input type="range" min="-30" max="30" value="2" step=".05" id="noise-1" oninput="input(this)">
+            </div>
+            <div>
+                <label for="faseK">Fase shift coefficient: <output></output></label>
+                <input type="range" min="-1" max="1" value="0" step=".005" id="faseK" oninput="input(this)">
+            </div>
+            <div>
+                <label for="bezier-smoothing">Bezier smoothing: <output></output></label>
+                <input type="range" min="-10" max="20" value="0.1" step=".05" id="bezier-smoothing" oninput="input(this)">
+            </div>
+            <div>
+                <label for="stroke">Line stroke (mm): <output></output></label>
+                <input type="range" min="0.05" max="10" value="0.8" step=".05" id="stroke" oninput="input(this)">
+            </div>
+            <div class="row left">
+                <label for="random-algo">Random algorithm:</label>
+                <select name="random-algo" id="random-algo" oninput="input(this)">
+                    <option value="0">off</option>
+                    <option value="1">sfc32</option>
+                    <option value="2">jsf32</option>
+                    <option value="3">xoshiro128ss</option>
+                    <option value="4">mulberry32</option>
+                </select>
+            </div>
+            <div class="row left">
+                <label for="random-to">Random behaviour:</label>
+                <select name="random-to" id="random-to" oninput="input(this)">
+                    <option value="0">option 1</option>
+                    <option value="1">option 2</option>
+                    <option value="2">option 3</option>
+                    <option value="3">option 4</option>
+                    <option value="4">option 5</option>
+                </select>
+            </div>
+            <div class="row left">
+                <label for="random-seed">Random seed:</label>
+                <input type="text" id="random-seed" value="TAG-2022" oninput="input(this)"><button
+                    id="gen-random-seed" 
+                    onclick="this.previousSibling.value = Math.random().toString(36).slice(2); this.previousSibling.oninput(this.previousSibling);">Generate</button>
             </div>
         </div>
     </details>

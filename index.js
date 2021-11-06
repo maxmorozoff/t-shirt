@@ -23,7 +23,7 @@ try {
 
 const APP = {svg:{}},
 createPath = str => {
-    
+
     console.time('addSVG')
     APP.svg.path.innerHTML = str
     console.timeEnd('addSVG')
@@ -42,7 +42,7 @@ const defaults = {
         x: 13,
         y: 15
     }, 
-    deg: 0,
+    // deg: 0,
     noise: [
         1,
         3,
@@ -51,10 +51,18 @@ const defaults = {
     faseK: 0,
     logo: true, 
     isSin: true, 
+    random: {
+        algo: 0,
+        seed: 'TAG-2022',
+        to: 0,
+    },
+    bezier:{
+        smoothing:.2,
+    },
     color: {
         lines: "#808080",
         bg: "#1D1E26"
-    }
+    },
     // dx:10,
     // useWorker: false,
 }
@@ -136,10 +144,22 @@ const createInput = (id, val, fn=_=>{} ) => {
                 <input type="range" min="-10" max="10" value="${val}" step=".1" id="${id}">`
             break;
         case Boolean:       
-            div.oninput = e=>fn(e.target?.checked)    
+            div.oninput = e=>{
+                fn(e.target?.checked)    
+                input(e.target)
+            }   
             div.innerHTML = `
                 <label for="${id}">${id.split('-').join(' ')}:</label>
                 <input type="checkbox" id="${id}" ${val ? 'checked' : ''}>`
+            break;        
+        case String:  
+            div.oninput = e=>{
+                fn(e.target?.value)   
+                input(e.target)
+            }   
+            div.innerHTML = `
+                <label for="${id}">${id.split('-').join(' ')}:</label>
+                <input type="text" id="${id}" value="${val}">`
             break;
     
         default:
@@ -188,6 +208,8 @@ const readFromInputElement = (el, obj=settings) => {
     if (el.type == 'checkbox') val = el.checked
     else if (el.type == 'range') val = +el.value
     else if (el.type == 'color') val = el.value
+    else if (el.type == 'text') val = el.value+''
+    else if (el.type == 'select-one') val = +el.value
     else return obj
 
     obj = writeWithId(id, obj, val)
@@ -195,7 +217,7 @@ const readFromInputElement = (el, obj=settings) => {
     return obj
 }
 const readFromInputElements = (doc=document,obj=settings) => 
-    doc.querySelectorAll('input').forEach(el=>readFromInputElement(el,obj))
+    doc.querySelectorAll('input, select').forEach(el=>readFromInputElement(el,obj))
 
     
 const writeToInputs = (arg=settings,fn=_=>{}) => {
@@ -244,6 +266,11 @@ const updateLogoBg = (s=settings) => {
     if (s.logo) document.querySelector('svg #tag-logo').style = ''
     else document.querySelector('svg #tag-logo').style = 'display: none;'
 }
+const updateInputOutput = (e, value=e.value) =>{ 
+    if ('value' in e.previousElementSibling?.lastChild)
+    e.previousElementSibling.lastChild.value = value
+};
+
 const applyStroke = (element,params={width:1,color:'grey'}, units = 'mm') => {
     if (!element) return
     console.dir(element)
@@ -275,7 +302,8 @@ const input = (e,isEvent=true) => {
         case 'noise-0':
         case 'noise-1':
         case 'isSin':
-            e.previousElementSibling.lastChild.value = e.value
+        case 'faseK':
+            updateInputOutput(e)
             if (!isEvent) break
             const obj = readFromInputElement(e)
             settings = obj
@@ -290,16 +318,12 @@ const input = (e,isEvent=true) => {
             // updateSearchParams({step,noise,isSin,useWorker:true,logo})
             break;
         case 'zoom': 
-            // console.dir(e)
-            e.previousElementSibling.lastChild.value = e.value
-            console.log(e,e.previousElementSibling.lastChild)
-            // e.nextElementSibling.value = e.value
-            // e.pre
-
             document.body.style = `--zoom:${e.value};`
+            updateInputOutput(e, e.value*100+'%')
             
             break;
         case 'stroke':
+            updateInputOutput(e)
             applyStroke(APP.svg.path, {width: e.value})
             break;
         case 'color-lines':
@@ -308,7 +332,11 @@ const input = (e,isEvent=true) => {
         case 'color-bg':
             document.querySelector('html').style = `--color-bg: ${e.value};`
             break;
+        case 'bezier-smoothing':
+            updateInputOutput(e)
+            svgWorker.postMessage(+e.value)
         default:
+            
             if (!isEvent) break
             scanAll(readFromInputElements(document.querySelector('.controll'),settings))
             writeToUrl(settings)
@@ -318,6 +346,7 @@ const input = (e,isEvent=true) => {
 }
 
 function xmur3(str) {
+    str=str.toString() ?? str
     for(var i = 0, h = 1779033703 ^ str.length; i < str.length; i++)
         h = Math.imul(h ^ str.charCodeAt(i), 3432918353),
         h = h << 13 | h >>> 19;
@@ -393,19 +422,8 @@ var rand = sfc32(seed(), seed(), seed(), seed());
 
 
 function scanAll(S=settings, svgSize = APP.svg.element.viewBox.baseVal, useWorker=true) {
-    // function scanAll(step={x:3,y:5}, noise = [1,3], isSin = true, svgSize = APP.svg.element.viewBox.baseVal, useWorker=true, faseK=.1) {
-    // let svg = document.querySelectorAll('svg > path')
-    // svg.forEach(p=>p?.remove())
-
     console.time('scanAll')
-    seed = xmur3("TAG-2022");
-
-    // rand = sfc32(seed(), seed(), seed(), seed());
-    rand = jsf32(seed(), seed(), seed(), seed());
-    // rand = xoshiro128ss(seed(), seed(), seed(), seed());
-    // rand = mulberry32(seed());
-
-    
+        
     const {width, height} = svgSize
     const xstep = S.step.x
     const ystep = Math.round(S.step.y)
@@ -416,7 +434,44 @@ function scanAll(S=settings, svgSize = APP.svg.element.viewBox.baseVal, useWorke
     // const dnoise = Math.abs(Math.abs(noise[1]) - Math.abs(noise[0]) )
     const nInc =  dnoise / (dx2)
     const PI = Math.PI
-    const sin = isSin ? (x,y) => Math.sin(faseK*y+2*PI*x/xstep+rand()) : _=>1
+
+    const isRand = S?.random?.algo || false;
+    seed = xmur3(S?.random?.seed || "TAG-2022");
+
+    rand = isRand && S?.random?.algo 
+            ? S.random.algo == 1
+            ? sfc32(seed(), seed(), seed(), seed())
+            : S.random.algo == 2
+            ? jsf32(seed(), seed(), seed(), seed()) 
+            : S.random.algo == 3
+            ? xoshiro128ss(seed(), seed(), seed(), seed())
+            : mulberry32(seed())
+        : _=>1;
+
+    // TODO: it's horibble
+    const sin = !isSin 
+        ? !isRand
+            ? _=>1
+            : S?.random?.to 
+            ? (S.random.to == 1)
+                ? (x,y) => rand()*rand()
+                : (S.random.to == 2)
+                ? (x,y) => rand()*2
+                : (S.random.to == 3)
+                ? (x,y) => rand()+rand()
+                : (x,y) => x%(xstep/2+faseK)*rand()/2 
+            : (x,y) => rand() 
+        : !isRand
+        ? (x,y) => Math.sin(faseK*y+2*PI*x/xstep) 
+        : S?.random?.to 
+        ? (S.random.to == 1)
+            ? (x,y) => Math.sin(faseK*y+2*PI*x/xstep*rand()) 
+            : (S.random.to == 2)
+            ? (x,y) => Math.sin(faseK*y*rand()+2*PI*x/xstep) 
+            : (S.random.to == 3)
+            ? (x,y) => Math.sin(faseK*y+2*PI*x/xstep)/(rand()+.5) 
+            : (x,y) => Math.sin(faseK*y+2*PI*x/xstep*rand()*10) 
+        : (x,y) => Math.sin(faseK*y+2*PI*x/xstep+rand()) 
     
     const lines = Array(svgSize.height)
     const blinelen = Math.floor(width+dx)
@@ -512,8 +567,8 @@ const isCircleOrLogo = (x,y) => (p =>
 
 
 
-// window.onload = 
-svgOnload = function()
+window.onload = function()
+// svgOnload = function()
 {
     APP.svg.element = document.getElementById("svg") || document.body.appendChild(document.createElement('svg'));
 
