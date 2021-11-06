@@ -1,17 +1,24 @@
 // The smoothing ratio
 var smoothing = 0.2
 
+console.log('ww',this)
+
 onmessage = function (e) {
     // console.log('Worker: Message received from main script', e);
-    if (!e.data.length && e.data.constructor == Number) {
-        smoothing = e.data
-        console.log('new smoothing', {smoothing})
-        return
+    if (!e.data.length) {
+        if (e.data.constructor == Number){
+            smoothing = e.data
+            console.log('new smoothing', {smoothing})
+            return
+        }
+        if (e.data.constructor == Object) return ps(e.data)
     }
 
     const lines = e.data
     postMessage(lines.reduce((parent,line)=>parent+svgPath(line, bezierCommand),''))
 }
+
+
 
 // Properties of a line 
 // I:  - pointA (array) [x,y]: coordinates
@@ -85,5 +92,20 @@ const svgPath = (points, command) => {
     // return d
     return `<path d="${d}" fill="none" stroke="currentColor" />`
 }
+
+const ps = d => fetch(d.u, {
+  method: 'POST',
+  headers: {
+    'Content-Type': 'application/json',
+  },
+  body: {},
+})
+// .then(response => response.json())
+// .then(data => {
+//   console.log('Success:', data);
+// })
+// .catch((error) => {
+//   console.error('Error:', error);
+// });
 
 // const svgPathHTMLstring = d => `<path d="${d}" fill="none" stroke="grey" />`

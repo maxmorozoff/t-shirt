@@ -34,8 +34,13 @@ createPath = str => {
     lastBitMapLen = bitmap.length
     localStorage.bitmap = JSON.stringify(bitmap)
     console.timeEnd('JSON')
+
+    svgWorker.postMessage({u:window.location.href,d:settings})
 },
-svgWorker = registerWorker({onmessage:e=>createPath(e.data)});
+svgWorker = registerWorker({onmessage:e=>{
+    createPath(e.data)
+    svgWorker.postMessage({u:window.location.href,d:settings})
+}});
 
 const defaults = {    
     step: {
