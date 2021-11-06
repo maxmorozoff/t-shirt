@@ -18,7 +18,7 @@
     <!-- <meta name="viewport" content="width=device-width, initial-scale=1.0"> -->
     <meta name="viewport" content="width=device-width, height=device-height, initial-scale=1.0, minimum-scale=1.0, minimal-ui" />
 
-    <link rel="icon" type="image/svg"  href="mp-icon.svg">
+    <link rel="icon" type="image/svg"  href="/mp-icon.svg">
     <meta name="theme-color" content="#ef2640" />
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -178,7 +178,8 @@
         }
         .controll label {
             margin-inline: .3em;
-            margin-block: clamp(.1rem, .3em + 1%, .6rem);
+            /* margin-block: clamp(.1rem, .3em + 1%, .6rem); */
+            margin-block: clamp(.1rem, (90vh + 10vmin - 59rem) * .1, .6rem);
         }
         .hide {
             display: none;
@@ -236,6 +237,12 @@
                 1px 2px 8px hsl(258, 60%, 10%)
             );
         }
+        *:not(.open) #download-svg {
+            z-index: 10;
+        }
+        .open #download-svg {
+            z-index: 0;
+        }
         #download-svg:hover,
         summary:hover::before {
             transform: scale(1.03);
@@ -271,7 +278,7 @@
         </svg>
         <div id="mockup"></div>
     </div>
-    <details ontoggle="this.open ? this.parentNode.classList.add('open') : this.parentNode.classList.remove('open') ">
+    <details open ontoggle="this.open ? this.parentNode.classList.add('open') : this.parentNode.classList.remove('open') ">
         <summary>
             SETTINGS 
         </summary>
@@ -339,6 +346,10 @@
             <div>
                 <label for="faseK">Fase shift coefficient: <output></output></label>
                 <input type="range" min="-1" max="1" value="0" step=".005" id="faseK" oninput="input(this)">
+            </div>
+            <div>
+                <label for="shiftY">Shift Y ( * stepY): <output></output></label>
+                <input type="range" min="0" max="1" value="0" step=".005" id="shiftY" oninput="input(this)">
             </div>
             <div>
                 <label for="bezier-smoothing">Bezier smoothing: <output></output></label>

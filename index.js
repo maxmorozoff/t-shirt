@@ -54,6 +54,7 @@ const defaults = {
     ],
     stroke: 1,
     faseK: 0,
+    shiftY: 0,
     logo: true, 
     logobg: true,
     isSin: true, 
@@ -324,6 +325,7 @@ const input = (e,isEvent=true) => {
         case 'noise-1':
         case 'isSin':
         case 'faseK':
+        case 'shiftY':
             updateInputOutput(e)
             if (!isEvent) break
             const obj = readFromInputElement(e)
@@ -467,7 +469,7 @@ function scanAll(S=settings, svgSize = APP.svg.element.viewBox.baseVal, useWorke
     const ystep = Math.round(S.step.y)
     const dx = (S?.dx || S?.dx === 0) ? Math.round(S.dx) : Math.round(xstep/4)
     const dx2 = 2*dx
-    const {noise, isSin, deg, faseK} = S
+    const {noise, isSin, deg, faseK, shiftY} = S
     const dnoise = (Math.abs(noise[1]) - Math.abs(noise[0]) )
     // const dnoise = Math.abs(Math.abs(noise[1]) - Math.abs(noise[0]) )
     const nInc =  dnoise / (dx2)
@@ -557,7 +559,7 @@ function scanAll(S=settings, svgSize = APP.svg.element.viewBox.baseVal, useWorke
         bitmap[y] = bitmapline;
         return points
     }
-    for (let y = 0; y < height; y+=ystep) {
+    for (let y = Math.round(shiftY>1?1:shiftY<0?0:shiftY*ystep); y < height; y+=ystep) {
         let line = scanLine(y)
         if (!line.length) continue
         lines[y] = line
