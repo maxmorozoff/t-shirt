@@ -149,10 +149,16 @@
         .controll > div.row:not(.left) {
             flex-direction: row;
             /* justify-content: space-evenly; */
+            flex-wrap: wrap;
         }
         .controll > div.row.left {
             flex-direction: row;
             align-items: center;
+        }
+        .controll .min > div {
+            min-width: min-content;
+            max-width: max-content;
+            width: calc((100vw - 34rem) * 30);
         }
         .controll input[type="checkbox"] {
             width: 1.3em;
@@ -252,6 +258,9 @@
             display: none;
         }
     </style>
+    <!-- <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@100;400;500;700&display=swap" rel="stylesheet"> -->
 </head>
 <body>
     <noscript>
@@ -283,14 +292,30 @@
                 <label for="zoom">Zoom: <span id="dpi-label"></span>  <output>100%</output></label>
                 <input type="range" min="0.25" max="10" value="1" step=".25" id="zoom" oninput="input(this)">
             </div>
-            <div class="row">
+            <div class="row min">
                 <div>
                     <input type="color" id="color-bg" name="color-bg" value="#e66465" oninput="input(this)">
-                    <label for="color-bg">BG color</label>
+                    <label for="color-bg">BG</label>
                 </div>
                 <div>
                     <input type="color" id="color-lines" name="color-lines" value="#f6b73c" oninput="input(this)">
-                    <label for="color-lines">Lines color</label>
+                    <label for="color-lines">Lines</label>
+                </div>
+                <div>
+                    <input type="color" id="color-tshirt" name="color-tshirt" value="#f6b73c" oninput="input(this)">
+                    <label for="color-tshirt">T-Shirt</label>
+                </div>
+                <div>
+                    <input type="color" id="color-sleeves" name="color-sleeves" value="#f6b73c" oninput="input(this)">
+                    <label for="color-sleeves">Sleeves</label>
+                </div>
+                <div>
+                    <input type="color" id="color-stitches" name="color-stitches" value="#f6b73c" oninput="input(this)">
+                    <label for="color-stitches">Stitches</label>
+                </div>
+                <div>
+                    <input type="color" id="color-label" name="color-label" value="#f6b73c" oninput="input(this)">
+                    <label for="color-label">Label</label>
                 </div>
             </div>
             <div class="row left">

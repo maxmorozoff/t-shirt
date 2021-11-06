@@ -61,7 +61,11 @@ const defaults = {
     },
     color: {
         lines: "#808080",
-        bg: "#1D1E26"
+        bg: "#1D1E26",
+        tshirt: "#303152",
+        sleeves: "#232323",
+        stitches: "#1A81E8",
+        label: "#E35453",
     },
     // dx:10,
     // useWorker: false,
@@ -267,7 +271,7 @@ const updateLogoBg = (s=settings) => {
     else document.querySelector('svg #tag-logo').style = 'display: none;'
 }
 const updateInputOutput = (e, value=e.value) =>{ 
-    if ('value' in e.previousElementSibling?.lastChild)
+    if (e.previousElementSibling?.lastChild && 'value' in e.previousElementSibling.lastChild)
     e.previousElementSibling.lastChild.value = value
 };
 
@@ -332,6 +336,15 @@ const input = (e,isEvent=true) => {
         case 'color-bg':
             document.querySelector('html').style = `--color-bg: ${e.value};`
             break;
+        case "color-tshirt":
+        case "color-sleeves":
+        case "color-stitches":
+        case "color-label":
+            mockup.setColor(e)
+            if (!isEvent) break
+            readFromInputElement(e,settings)
+            writeToUrl(settings)
+        break;
         case 'bezier-smoothing':
             updateInputOutput(e)
             svgWorker.postMessage(+e.value)
@@ -596,12 +609,39 @@ window.onload = function()
 
 
 const mockup = {
+    element: {},
+    part: {
+        label: {},
+        tshirt: {},
+        sleeves: {},
+        stitches: {},
+    },
     fetch: el => fetch('t-shirt-mockup.svg')
-    .then(r => r.text())
-    .then(text => {
-        el.innerHTML = text;
-    })
-    .catch(console.error.bind(console)),
+                .then(r => r.text())
+                .then(text => {
+                    el.innerHTML = text;
+                    return el
+                })
+                .then(mockup.init)
+                .catch(console.error.bind(console)),
+    init: el => {
+        mockup.element = el
+        for (const key in mockup.part) {
+            mockup.part[key] = el.querySelector(`#colors #`+key)
+            mockup.setColor(document.querySelector('input#color-'+key))
+        }
+    },
+    setColor: el => {
+        console.trace('setColor', {el})
+        if (!el) return
+        const id = el.id.slice(6)
+        const target = mockup.part[id] ?? ""
+        if (!target) throw 'no target in setColor'
+        if (target.constructor == Object) return
+        console.log({target})
+        target.setAttribute('color', el.value)
+    }
+
 }
 
 function svgLoaded(){
