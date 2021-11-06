@@ -50,6 +50,8 @@
         .controll {
             /* margin-top: clamp(2rem, (53rem - 100vh) * 3, 50vh); */
             margin-top: clamp(2rem, (35rem - 100vw) * 3, 50vh);
+            margin-inline: clamp(.8rem, (100vw - 35rem), 1.8rem);
+
         }
         details {
             position: fixed;
@@ -59,9 +61,7 @@
             font-size: 1rem;
             padding-bottom: 6rem;
             max-height: calc(100% - 6rem);
-            overflow-y:auto;
-            scrollbar-width: thin;
-            scrollbar-width: none;
+            overflow-y: auto;
         }
         details::-webkit-scrollbar {
             width: 4px;
@@ -92,9 +92,19 @@
             filter: drop-shadow(
                 1px 2px 8px hsl(258, 60%, 10%)
             );
+            transform-origin: 24px center;
         }
         details[open] > summary {
             font-size: 0;
+            transform: rotate(180deg);
+        }
+        details[open] summary ~ * {
+            animation: sweep .35s ease-out;
+        }
+
+        @keyframes sweep {
+            0%    {opacity: 0; transform: translateX(-100%);}
+            100%  {opacity: 1; transform: translateX(0);}
         }
         summary::marker,
         summary::-webkit-details-marker {
@@ -110,6 +120,7 @@
             height: 3rem;
             max-width: 48px;
             max-height: 48px;
+            z-index: 2;
             /* margin: 1.8rem; */
             border-radius: 50%;
             border: 0;
@@ -180,6 +191,8 @@
             height: calc(var(--zoom, 1) * 210mm);
             /* width: calc(1vw + 9vw); */
             /* max-width: 100vw; */
+            opacity: 1;
+            transition: opacity .3s ease-in;
         }
         .svg {
             width: fit-content;
@@ -232,12 +245,14 @@
         #download-svg:hover,
         summary:hover::before {
             transform: scale(1.03);
+            background-size: 58%;
+
         }
     </style>
 </head>
 <body>
     <div class="svg">
-        <svg id="svg" width="1266" height="1266" viewBox="0 0 1266 1266" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <svg id="svg" width="1266" height="1266" viewBox="0 0 1266 1266" fill="none" xmlns="http://www.w3.org/2000/svg" style="opacity: 0;">
             <text x="1166" y="1166" text-anchor="end" fill="grey">
                     https://tag.morozov.page/mklogo/
                 </text>
@@ -252,7 +267,7 @@
             </g>
         </svg>
     </div>
-    <details open ontoggle="this.open ? this.parentNode.classList.add('open') : this.parentNode.classList.remove('open') ">
+    <details ontoggle="this.open ? this.parentNode.classList.add('open') : this.parentNode.classList.remove('open') ">
         <summary>
             SETTINGS 
         </summary>

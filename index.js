@@ -587,6 +587,8 @@ window.onload = function()
     updateLogoBg(settings)
     
     scanAll()
+
+    APP.svg.element.style = ''
     
 }
 
