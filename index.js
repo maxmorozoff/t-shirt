@@ -589,11 +589,32 @@ window.onload = function()
     scanAll()
 
     APP.svg.element.style = ''
+
+    mockup.fetch(document.querySelector('#mockup'))
     
 }
 
 
+const mockup = {
+    fetch: el => fetch('t-shirt-mockup.svg')
+    .then(r => r.text())
+    .then(text => {
+        el.innerHTML = text;
+    })
+    .catch(console.error.bind(console)),
+}
 
+function svgLoaded(){
+    console.log(arguments)
+    let svgObj = document.querySelector("#svg-object")
+        board = document.querySelector(".illustration")
+        // board = document.querySelector(".illustration > div")
+        svg = svgObj.contentDocument.childNodes[0]
+        svgObj.remove();
+        board.prepend(svg)
+        svg.setAttribute("width", "100%")
+        svg.setAttribute("height", "100%")
+}
 
 
 
