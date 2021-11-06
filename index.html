@@ -317,6 +317,10 @@
                     <input type="color" id="color-label" name="color-label" value="#f6b73c" oninput="input(this)">
                     <label for="color-label">Label</label>
                 </div>
+                <div>
+                    <input type="color" id="color-logo" name="color-logo" value="#F15B5A" oninput="input(this)">
+                    <label for="color-logo">Logo</label>
+                </div>
             </div>
             <div class="row left">
                 <label for="logo">Show TAG background:</label>
@@ -414,7 +418,7 @@
             svgs.forEach(svg=>{
                 if (svg.id == 'mockup') {
                     const what = document.querySelector('#svg')
-                    svg.querySelector('defs').appendChild(what)
+                    svg.querySelector('defs').appendChild(what.cloneNode(true))
                     download(`t-shirt-logo-${time}-mockup.svg`,svg.outerHTML)
                     return;
                 }

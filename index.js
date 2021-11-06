@@ -67,6 +67,7 @@ const defaults = {
         sleeves: "#232323",
         stitches: "#1A81E8",
         label: "#E35453",
+        logo: "#F15B5A",
     },
     // dx:10,
     // useWorker: false,
@@ -346,6 +347,14 @@ const input = (e,isEvent=true) => {
             break;
         case 'color-bg':
             document.querySelector('html').style = `--color-bg: ${e.value};`
+            break;
+        case 'color-logo':
+
+            document.querySelector('svg #tag-logo #vector').setAttribute('fill', e.value)
+
+            if (!isEvent) break
+            readFromInputElement(e,settings)
+            writeToUrl(settings)
             break;
         case "color-tshirt":
         case "color-sleeves":
