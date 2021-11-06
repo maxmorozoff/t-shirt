@@ -50,6 +50,7 @@ const defaults = {
     stroke: 1,
     faseK: 0,
     logo: true, 
+    logobg: true,
     isSin: true, 
     random: {
         algo: 0,
@@ -266,9 +267,13 @@ const writeToInputs = (arg=settings,fn=_=>{}) => {
 // writeToInputs(settings)
 
 
-const updateLogoBg = (s=settings) => {
+const updateLogo = (s=settings) => {
     if (s.logo) document.querySelector('svg #tag-logo').style = ''
     else document.querySelector('svg #tag-logo').style = 'display: none;'
+}
+const updateLogoBg = (s=settings) => {
+    if (s.logobg) document.querySelector('svg #tag-logo #circle').style = ''
+    else document.querySelector('svg #tag-logo #circle').style = 'opacity: 0;'
 }
 const updateInputOutput = (e, value=e.value) =>{ 
     if (e.previousElementSibling?.lastChild && 'value' in e.previousElementSibling.lastChild)
@@ -296,6 +301,12 @@ const input = (e,isEvent=true) => {
 
     switch (id) {
         case 'logo':
+            // document.querySelector('svg #tag-logo').classList.toggle('hide')
+            updateLogo(readFromInputElement(e))
+            if (!isEvent) break
+            writeToUrl(readFromInputElements(document.querySelector('.controll'),settings))
+            break;
+        case 'logobg':
             // document.querySelector('svg #tag-logo').classList.toggle('hide')
             updateLogoBg(readFromInputElement(e))
             if (!isEvent) break
@@ -597,7 +608,7 @@ window.onload = function()
     
 
     writeToInputs(settings,input)
-    updateLogoBg(settings)
+    updateLogo(settings)
     
     scanAll()
 
